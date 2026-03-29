@@ -800,9 +800,124 @@
         .tag-high { background: rgba(255, 107, 107, 0.2); color: var(--red); }
         .tag-med { background: rgba(253, 203, 110, 0.2); color: var(--orange); }
         .tag-low { background: rgba(0, 206, 201, 0.2); color: var(--green); }
+
+        /* PIN Wall */
+        .pin-wall {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-primary);
+            z-index: 99999;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+        }
+        .pin-wall.hidden { display: none; }
+        .pin-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 48px 40px;
+            text-align: center;
+            max-width: 380px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(108, 92, 231, 0.15);
+        }
+        .pin-box h2 {
+            font-size: 1.4rem;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .pin-box p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px; }
+        .pin-input-wrap {
+            display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;
+        }
+        .pin-digit {
+            width: 52px; height: 60px;
+            background: var(--bg-input);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1.6rem;
+            text-align: center;
+            font-weight: 700;
+            outline: none;
+            transition: border-color 0.2s;
+            -webkit-text-security: disc;
+        }
+        .pin-digit:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .pin-error { color: var(--red); font-size: 0.85rem; min-height: 20px; margin-bottom: 12px; }
+        .pin-submit {
+            background: linear-gradient(135deg, var(--accent), #7c6cf0);
+            color: white; border: none; padding: 12px 40px;
+            border-radius: 8px; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: opacity 0.2s;
+        }
+        .pin-submit:hover { opacity: 0.9; }
+        .pin-logo { font-size: 2.5rem; margin-bottom: 16px; }
     </style>
 </head>
 <body>
+    <!-- PIN Protection Wall -->
+    <div class="pin-wall" id="pinWall">
+        <div class="pin-box">
+            <div class="pin-logo">&#128274;</div>
+            <h2>Finance With Phil</h2>
+            <p>Enter PIN to access the analytics dashboard</p>
+            <div class="pin-input-wrap">
+                <input class="pin-digit" type="tel" maxlength="1" data-pin="0" autofocus>
+                <input class="pin-digit" type="tel" maxlength="1" data-pin="1">
+                <input class="pin-digit" type="tel" maxlength="1" data-pin="2">
+                <input class="pin-digit" type="tel" maxlength="1" data-pin="3">
+            </div>
+            <div class="pin-error" id="pinError"></div>
+            <button class="pin-submit" onclick="checkPin()">Unlock</button>
+        </div>
+    </div>
+    <script>
+    (function() {
+        // SHA-256 hash of PIN "7777"
+        const PIN_HASH = 'b17ef6d19c7a5b1ee83b907c595526dcb1eb06db8227d650d5dda0a9f4ce8cd9';
+
+        async function sha256(text) {
+            const data = new TextEncoder().encode(text);
+            const buf = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        const digits = document.querySelectorAll('.pin-digit');
+        digits.forEach((input, i) => {
+            input.addEventListener('input', () => {
+                input.value = input.value.replace(/\D/g, '').slice(0, 1);
+                if (input.value && i < digits.length - 1) digits[i + 1].focus();
+                if (i === digits.length - 1 && input.value) checkPin();
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !input.value && i > 0) digits[i - 1].focus();
+                if (e.key === 'Enter') checkPin();
+            });
+        });
+
+        if (sessionStorage.getItem('fwp_auth') === 'true') {
+            document.getElementById('pinWall').classList.add('hidden');
+        }
+
+        window.checkPin = async function() {
+            const pin = Array.from(digits).map(d => d.value).join('');
+            if (pin.length < 4) { document.getElementById('pinError').textContent = 'Enter all 4 digits'; return; }
+            const hash = await sha256(pin);
+            if (hash === PIN_HASH) {
+                sessionStorage.setItem('fwp_auth', 'true');
+                document.getElementById('pinWall').classList.add('hidden');
+            } else {
+                document.getElementById('pinError').textContent = 'Incorrect PIN';
+                digits.forEach(d => { d.value = ''; d.style.borderColor = 'var(--red)'; });
+                digits[0].focus();
+                setTimeout(() => digits.forEach(d => d.style.borderColor = ''), 1000);
+            }
+        };
+    })();
+    </script>
+
     <div class="dashboard-container">
         <!-- Header -->
         <header class="dashboard-header">
