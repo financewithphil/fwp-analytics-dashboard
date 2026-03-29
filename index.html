@@ -923,8 +923,9 @@
                 <select id="filter-post-sort" onchange="filterPosts()">
                     <option value="date">Newest</option>
                     <option value="views">Most Views</option>
-                    <option value="engagement">Highest Engagement</option>
+                    <option value="likes">Most Likes</option>
                     <option value="comments">Most Comments</option>
+                    <option value="engagement">Highest Engagement</option>
                 </select>
                 <input type="date" id="filter-post-start" onchange="filterPosts()">
                 <input type="date" id="filter-post-end" onchange="filterPosts()">
@@ -976,12 +977,23 @@
             <div class="table-section">
                 <div class="flex-between mb-2">
                     <h3>Recent Comments</h3>
-                    <select id="filter-comment-sentiment" onchange="filterComments()">
+                    <select id="filter-comment-platform" onchange="filterComments()" style="margin-right:8px">
+                        <option value="all">All Platforms</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="threads">Threads</option>
+                    </select>
+                    <select id="filter-comment-sentiment" onchange="filterComments()" style="margin-right:8px">
                         <option value="all">All Sentiment</option>
                         <option value="positive">Positive</option>
                         <option value="neutral">Neutral</option>
                         <option value="negative">Negative</option>
                         <option value="question">Questions</option>
+                    </select>
+                    <select id="filter-comment-sort" onchange="filterComments()">
+                        <option value="date">Newest</option>
+                        <option value="likes">Most Likes</option>
                     </select>
                 </div>
                 <div id="comments-table"></div>
@@ -2098,6 +2110,7 @@
         const sortMap = {
             date: (a, b) => new Date(b.date) - new Date(a.date),
             views: (a, b) => b.views - a.views,
+            likes: (a, b) => (b.likes || 0) - (a.likes || 0),
             engagement: (a, b) => parseFloat(b.engagementRate) - parseFloat(a.engagementRate),
             comments: (a, b) => b.comments - a.comments,
         };
@@ -2184,14 +2197,12 @@
         const negative = comments.filter(c => c.sentiment === 'negative').length;
         const neutral = comments.filter(c => c.sentiment === 'neutral').length;
         const questions = comments.filter(c => c.sentiment === 'question').length;
-        const replied = comments.filter(c => c.replied).length;
-        const replyRate = comments.length > 0 ? ((replied / comments.length) * 100).toFixed(0) : 0;
-
         document.getElementById('comments-kpis').innerHTML = `
             <div class="kpi-card"><div class="kpi-label">Total Comments</div><div class="kpi-value">${comments.length}</div></div>
             <div class="kpi-card"><div class="kpi-label">Positive</div><div class="kpi-value" style="color:var(--green)">${positive}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Negative</div><div class="kpi-value" style="color:var(--red,#f43f5e)">${negative}</div></div>
             <div class="kpi-card"><div class="kpi-label">Questions</div><div class="kpi-value" style="color:var(--blue)">${questions}</div></div>
-            <div class="kpi-card"><div class="kpi-label">Reply Rate</div><div class="kpi-value">${replyRate}%</div></div>
+            <div class="kpi-card"><div class="kpi-label">Neutral</div><div class="kpi-value">${neutral}</div></div>
         `;
 
         // Sentiment chart
@@ -2252,24 +2263,35 @@
 
     function filterComments() {
         const sentiment = document.getElementById('filter-comment-sentiment').value;
+        const platform = document.getElementById('filter-comment-platform').value;
+        const sort = document.getElementById('filter-comment-sort').value;
         let filtered = [...store.comments];
         if (sentiment !== 'all') filtered = filtered.filter(c => c.sentiment === sentiment);
+        if (platform !== 'all') filtered = filtered.filter(c => c.platform === platform);
 
-        let html = `<table class="data-table"><thead><tr>
-            <th>User</th><th>Comment</th><th>Platform</th><th>Sentiment</th><th>Date</th><th>Replied</th>
+        if (sort === 'likes') {
+            filtered.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        } else {
+            filtered.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        }
+
+        let html = `<div style="color:#6a6a8a;font-size:12px;margin-bottom:8px">Showing ${filtered.length} comments</div>`;
+        html += `<table class="data-table"><thead><tr>
+            <th>User</th><th>Comment</th><th>Platform</th><th>Sentiment</th><th>Likes</th><th>Date</th>
         </tr></thead><tbody>`;
-        filtered.forEach(c => {
+        filtered.slice(0, 200).forEach(c => {
             const sentColors = { positive: 'tag-low', negative: 'tag-high', neutral: 'tag-med', question: '' };
             html += `<tr>
-                <td>${c.username}</td>
+                <td style="color:#22d3ee">${c.username}</td>
                 <td style="max-width:350px;">${c.text}</td>
                 <td>${platformBadge(c.platform)}</td>
                 <td><span class="tag ${sentColors[c.sentiment] || ''}">${c.sentiment}</span></td>
+                <td style="color:#f59e0b;font-weight:600">${c.likes || 0}</td>
                 <td>${c.date}</td>
-                <td>${c.replied ? '<span style="color:var(--green)">Yes</span>' : '<span style="color:var(--text-muted)">No</span>'}</td>
             </tr>`;
         });
         html += '</tbody></table>';
+        if (filtered.length > 200) html += `<p style="color:#6a6a8a;font-size:12px;margin-top:8px">${filtered.length - 200} more not shown. Use filters to narrow.</p>`;
         document.getElementById('comments-table').innerHTML = html;
     }
 
@@ -2754,11 +2776,12 @@
         let vpHtml = '';
         a.viralPosts.slice(0, 20).forEach((v, i) => {
             const scoreColor = v.viralityScore >= 10 ? '#f43f5e' : v.viralityScore >= 5 ? '#f59e0b' : '#22d3ee';
+            const linkHtml = v.url ? `<a href="${v.url}" target="_blank" style="color:#a78bfa;text-decoration:none;font-size:12px;margin-left:6px" title="View original">&#x2197;</a>` : '';
             vpHtml += `<div style="display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid #2a2a4a">
                 <div style="min-width:36px;height:36px;border-radius:50%;background:${scoreColor};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff">${v.viralityScore.toFixed(0)}x</div>
                 <div style="flex:1;min-width:0">
-                    <div style="color:#e0e0ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.title || 'Untitled'}</div>
-                    <div style="color:#6a6a8a;font-size:12px">${v.platform} · ${v.date} · ${v.categories?.join(', ') || ''}</div>
+                    <div style="color:#e0e0ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.url ? `<a href="${v.url}" target="_blank" style="color:#e0e0ff;text-decoration:none">${v.title || 'Untitled'}</a>` : (v.title || 'Untitled')}${linkHtml}</div>
+                    <div style="color:#6a6a8a;font-size:12px">${platformBadge(v.platform)} · ${v.date} · ${v.categories?.join(', ') || ''}</div>
                 </div>
                 <div style="text-align:right;min-width:80px">
                     <div style="color:#a78bfa;font-weight:600">${v.views >= 1000000 ? (v.views/1000000).toFixed(1)+'M' : v.views >= 1000 ? (v.views/1000).toFixed(1)+'K' : v.views}</div>
