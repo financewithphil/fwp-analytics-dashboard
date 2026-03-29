@@ -1,0 +1,6 @@
+.~lock.*
+*.xlsx
+Claude_Code_Session_Briefing.md
+*.csv
+data/yt_shorts_raw.json
+.DS_Store

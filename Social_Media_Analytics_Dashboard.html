@@ -1,0 +1,3349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phillip Karaya/Finance With Phil Social Media Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #222240;
+            --bg-input: #16162b;
+            --border: #2a2a4a;
+            --accent: #6c5ce7;
+            --accent-light: #a29bfe;
+            --accent-glow: rgba(108, 92, 231, 0.3);
+            --green: #00cec9;
+            --green-bg: rgba(0, 206, 201, 0.1);
+            --red: #ff6b6b;
+            --red-bg: rgba(255, 107, 107, 0.1);
+            --orange: #fdcb6e;
+            --blue: #74b9ff;
+            --pink: #fd79a8;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0c0;
+            --text-muted: #6a6a8a;
+            --ig-gradient: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+            --tt-gradient: linear-gradient(45deg, #00f2ea, #ff0050);
+            --yt-gradient: linear-gradient(45deg, #ff0000, #cc0000);
+            --th-gradient: linear-gradient(45deg, #000000, #333333);
+            --gap: 16px;
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: var(--gap);
+        }
+
+        /* Header */
+        .dashboard-header {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 20px 28px;
+            border-radius: var(--radius);
+            margin-bottom: var(--gap);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .dashboard-header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-light), var(--green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .dashboard-header .subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 6px;
+            margin-bottom: var(--gap);
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .nav-tab:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+        .nav-tab.active { background: var(--accent); color: white; }
+
+        /* Page sections */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* KPI Row */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            transition: all 0.2s;
+        }
+
+        .kpi-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .kpi-card .platform-icon {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .kpi-change {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .kpi-change.positive { color: var(--green); background: var(--green-bg); }
+        .kpi-change.negative { color: var(--red); background: var(--red-bg); }
+
+        /* Chart containers */
+        .chart-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+
+        .chart-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+        }
+
+        .chart-container h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .chart-container canvas {
+            max-height: 300px;
+        }
+
+        /* Tables */
+        .table-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: var(--gap);
+            overflow-x: auto;
+        }
+
+        .table-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .data-table thead th {
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .data-table thead th:hover { color: var(--accent-light); }
+
+        .data-table tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(42, 42, 74, 0.5);
+            color: var(--text-primary);
+        }
+
+        .data-table tbody tr:hover { background: var(--bg-card-hover); }
+
+        .platform-badge {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-ig { background: rgba(225, 48, 108, 0.2); color: #e1306c; }
+        .badge-tt { background: rgba(0, 242, 234, 0.2); color: #00f2ea; }
+        .badge-yt { background: rgba(255, 0, 0, 0.2); color: #ff4444; }
+        .badge-th { background: rgba(255, 255, 255, 0.15); color: #ffffff; }
+
+        /* Forms & Inputs */
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: var(--gap);
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        select option { background: var(--bg-card); }
+
+        textarea { resize: vertical; min-height: 100px; }
+
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover { background: #5a4bd1; box-shadow: 0 0 20px var(--accent-glow); }
+
+        .btn-secondary {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover { border-color: var(--accent); }
+
+        .btn-danger { background: var(--red); color: white; }
+        .btn-success { background: var(--green); color: var(--bg-primary); }
+
+        /* Post Entry Cards */
+        .post-entry-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: var(--gap);
+        }
+
+        .post-entry-card h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Competitor Research */
+        .creator-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: var(--gap);
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .creator-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .creator-info h4 { font-size: 16px; }
+        .creator-info p { font-size: 13px; color: var(--text-secondary); }
+
+        .creator-stats {
+            display: flex;
+            gap: 20px;
+            text-align: center;
+        }
+
+        .creator-stat-value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .creator-stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        /* Thumbnail Creator */
+        .thumbnail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+
+        .thumbnail-preview {
+            aspect-ratio: 16/9;
+            border-radius: var(--radius);
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            border: 2px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .thumbnail-preview:hover {
+            border-color: var(--accent);
+            transform: scale(1.02);
+        }
+
+        .thumbnail-preview canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .thumbnail-selected {
+            border-color: var(--green) !important;
+            box-shadow: 0 0 20px rgba(0, 206, 201, 0.3);
+        }
+
+        /* Content Calendar */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: var(--gap);
+        }
+
+        .calendar-header {
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .calendar-day {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            min-height: 100px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .calendar-day:hover { border-color: var(--accent); }
+
+        .calendar-day .day-number {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .calendar-day.today .day-number { color: var(--accent); }
+
+        .calendar-event {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .calendar-event.ig { background: rgba(225, 48, 108, 0.3); color: #ff6b9d; }
+        .calendar-event.tt { background: rgba(0, 242, 234, 0.3); color: #00f2ea; }
+        .calendar-event.yt { background: rgba(255, 0, 0, 0.3); color: #ff6b6b; }
+        .calendar-event.th { background: rgba(255, 255, 255, 0.15); color: #ccc; }
+
+        /* ManyChat Section */
+        .flow-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: var(--gap);
+        }
+
+        .flow-card h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .flow-card .flow-desc {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .flow-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .flow-step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .flow-step-content {
+            flex: 1;
+        }
+
+        .flow-step-content .step-type {
+            font-size: 11px;
+            color: var(--accent-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .flow-step-content .step-text {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .flow-arrow {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 18px;
+            padding: 2px 0;
+        }
+
+        /* Comment Analysis */
+        .sentiment-bar {
+            display: flex;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .sentiment-positive { background: var(--green); }
+        .sentiment-neutral { background: var(--orange); }
+        .sentiment-negative { background: var(--red); }
+
+        /* Export buttons area */
+        .export-bar {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-bottom: var(--gap);
+        }
+
+        /* Filters */
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: var(--gap);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-bar select, .filter-bar input {
+            width: auto;
+            min-width: 150px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-tabs { flex-wrap: nowrap; overflow-x: auto; }
+            .chart-row { grid-template-columns: 1fr; }
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+            .creator-card { grid-template-columns: 1fr; }
+            .calendar-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-content h2 { margin-bottom: 20px; font-size: 18px; }
+
+        /* Post Detail Modal */
+        .post-detail-header {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .post-detail-thumb {
+            width: 180px;
+            height: 120px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: var(--bg-input);
+            flex-shrink: 0;
+        }
+        .post-detail-thumb-placeholder {
+            width: 180px;
+            height: 120px;
+            border-radius: 8px;
+            background: var(--bg-input);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .post-detail-meta {
+            flex: 1;
+        }
+        .post-detail-meta h3 {
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+        .post-detail-meta .meta-row {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .post-detail-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin: 16px 0;
+        }
+        .post-detail-stat {
+            background: var(--bg-input);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .post-detail-stat .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .post-detail-stat .stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        .post-detail-caption {
+            background: var(--bg-input);
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+        }
+        .post-detail-link {
+            display: inline-block;
+            padding: 8px 16px;
+            background: var(--accent);
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .post-detail-link:hover {
+            background: #5a4bd1;
+        }
+
+        /* Last Scraped / Data Status */
+        .data-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .data-status .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .data-status .status-dot.live { background: var(--green); }
+        .data-status .status-dot.stale { background: var(--orange); }
+        .data-status .status-dot.empty { background: var(--text-muted); }
+
+        .btn-refresh {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-refresh:hover {
+            border-color: var(--accent);
+            color: var(--accent-light);
+        }
+        .btn-refresh.loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Clickable table rows */
+        .data-table tbody tr.clickable-row { cursor: pointer; }
+        .data-table tbody tr.clickable-row:hover { background: var(--bg-card-hover); }
+
+        /* Utility */
+        .mt-1 { margin-top: 8px; }
+        .mt-2 { margin-top: 16px; }
+        .mb-1 { margin-bottom: 8px; }
+        .mb-2 { margin-bottom: 16px; }
+        .text-muted { color: var(--text-secondary); }
+        .text-sm { font-size: 13px; }
+        .flex { display: flex; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .gap-1 { gap: 8px; }
+        .gap-2 { gap: 16px; }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state h3 { color: var(--text-secondary); margin-bottom: 8px; }
+
+        /* Data import area */
+        .import-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: var(--gap);
+        }
+        .import-zone:hover {
+            border-color: var(--accent);
+            background: rgba(108, 92, 231, 0.05);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--gap);
+        }
+
+        .section-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .tag-high { background: rgba(255, 107, 107, 0.2); color: var(--red); }
+        .tag-med { background: rgba(253, 203, 110, 0.2); color: var(--orange); }
+        .tag-low { background: rgba(0, 206, 201, 0.2); color: var(--green); }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div>
+                <h1>Phillip Karaya/Finance With Phil Social Media Analytics Dashboard</h1>
+                <div class="subtitle">Social Media Analytics &amp; Content Management</div>
+            </div>
+            <div class="flex gap-2" style="align-items:center;">
+                <div class="data-status" id="data-status">
+                    <span class="status-dot empty"></span>
+                    <span id="last-scraped-label">No data loaded</span>
+                </div>
+                <button class="btn-refresh" id="btn-refresh" onclick="refreshData()">&#x21bb; Refresh Data</button>
+                <button class="btn btn-secondary" onclick="exportAllData()">Export Data</button>
+                <button class="btn btn-secondary" onclick="exportReport()">Export Report</button>
+                <button class="btn btn-primary" onclick="showImportModal()">+ Import Data</button>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" onclick="showPage('overview')">Overview</button>
+            <button class="nav-tab" onclick="showPage('posts')">Post Analysis</button>
+            <button class="nav-tab" onclick="showPage('comments')">Comments</button>
+            <button class="nav-tab" onclick="showPage('insights')">Insights</button>
+            <button class="nav-tab" onclick="showPage('creators')">Creator Research</button>
+            <button class="nav-tab" onclick="showPage('thumbnails')">Thumbnails</button>
+            <button class="nav-tab" onclick="showPage('calendar')">Content Calendar</button>
+            <button class="nav-tab" onclick="showPage('manychat')">ManyChat Flows</button>
+        </nav>
+
+        <!-- ==================== OVERVIEW PAGE ==================== -->
+        <div id="page-overview" class="page active">
+            <div class="kpi-row" id="overview-kpis"></div>
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h3>Monthly Post Activity (All Platforms)</h3>
+                    <canvas id="chart-follower-growth"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Engagement Rate by Platform</h3>
+                    <canvas id="chart-engagement-rate"></canvas>
+                </div>
+            </div>
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h3>Content Performance — Views by Platform</h3>
+                    <canvas id="chart-views-trend"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Platform Distribution</h3>
+                    <canvas id="chart-platform-dist"></canvas>
+                </div>
+            </div>
+            <!-- Last Posted & Cadence -->
+            <div class="table-section">
+                <h3>Platform Status — Last Posted & Cadence</h3>
+                <div id="last-posted-cards"></div>
+            </div>
+
+            <!-- Response Rate Dashboard -->
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h3>Comment Response Rate</h3>
+                    <canvas id="chart-response-rate"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Response Rate by Sentiment</h3>
+                    <canvas id="chart-response-sentiment"></canvas>
+                </div>
+            </div>
+            <div class="table-section">
+                <div id="response-rate-kpis"></div>
+            </div>
+
+            <!-- Revenue Tracker -->
+            <div class="table-section">
+                <div class="flex-between mb-2">
+                    <h3>Revenue & Monetization</h3>
+                    <button class="btn btn-primary btn-sm" onclick="showAddDealModal()">+ Add Deal</button>
+                </div>
+                <div id="revenue-summary"></div>
+                <div id="revenue-deals-table"></div>
+            </div>
+
+            <div class="table-section">
+                <div class="flex-between mb-2">
+                    <h3>Top Performing Posts (Last 30 Days)</h3>
+                </div>
+                <div id="top-posts-table"></div>
+            </div>
+        </div>
+
+        <!-- ==================== POST ANALYSIS PAGE ==================== -->
+        <div id="page-posts" class="page">
+            <div class="section-header">
+                <h2>Post Analysis</h2>
+                <button class="btn btn-primary" onclick="showAddPostModal()">+ Add Post</button>
+            </div>
+
+            <div class="filter-bar">
+                <select id="filter-post-platform" onchange="filterPosts()">
+                    <option value="all">All Platforms</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="threads">Threads</option>
+                </select>
+                <select id="filter-post-type" onchange="filterPosts()">
+                    <option value="all">All Types</option>
+                    <option value="reel">Reel</option>
+                    <option value="carousel">Carousel</option>
+                    <option value="story">Story</option>
+                    <option value="video">Video</option>
+                    <option value="short">Short</option>
+                    <option value="post">Post</option>
+                </select>
+                <select id="filter-post-sort" onchange="filterPosts()">
+                    <option value="date">Newest</option>
+                    <option value="views">Most Views</option>
+                    <option value="engagement">Highest Engagement</option>
+                    <option value="comments">Most Comments</option>
+                </select>
+                <input type="date" id="filter-post-start" onchange="filterPosts()">
+                <input type="date" id="filter-post-end" onchange="filterPosts()">
+            </div>
+
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h3>Post Performance Over Time</h3>
+                    <canvas id="chart-post-performance"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Best Posting Times</h3>
+                    <canvas id="chart-best-times"></canvas>
+                </div>
+            </div>
+
+            <div class="table-section">
+                <div id="posts-table"></div>
+            </div>
+        </div>
+
+        <!-- ==================== COMMENTS PAGE ==================== -->
+        <div id="page-comments" class="page">
+            <div class="section-header">
+                <h2>Comment Analysis</h2>
+                <button class="btn btn-primary" onclick="showAddCommentsModal()">+ Import Comments</button>
+            </div>
+
+            <div class="kpi-row" id="comments-kpis"></div>
+
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h3>Sentiment Breakdown</h3>
+                    <canvas id="chart-sentiment"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Comment Volume Over Time</h3>
+                    <canvas id="chart-comment-volume"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-row">
+                <div class="chart-container" style="grid-column: 1 / -1;">
+                    <h3>Top Comment Themes &amp; Keywords</h3>
+                    <div id="keyword-cloud"></div>
+                </div>
+            </div>
+
+            <div class="table-section">
+                <div class="flex-between mb-2">
+                    <h3>Recent Comments</h3>
+                    <select id="filter-comment-sentiment" onchange="filterComments()">
+                        <option value="all">All Sentiment</option>
+                        <option value="positive">Positive</option>
+                        <option value="neutral">Neutral</option>
+                        <option value="negative">Negative</option>
+                        <option value="question">Questions</option>
+                    </select>
+                </div>
+                <div id="comments-table"></div>
+            </div>
+        </div>
+
+        <!-- ==================== INSIGHTS PAGE ==================== -->
+        <div id="page-insights" class="page">
+            <div class="section-header"><h2>Deep Insights</h2></div>
+
+            <!-- Posting Heatmap -->
+            <div class="table-section">
+                <h3>Optimal Posting Times</h3>
+                <p style="color:#6a6a8a;margin-bottom:12px">Average views by day-of-week and hour. Darker = more views.</p>
+                <div id="posting-heatmap" style="overflow-x:auto"></div>
+            </div>
+
+            <!-- Content Categories + Engagement Funnel -->
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h3>Content Category Performance</h3>
+                    <canvas id="chart-categories"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Engagement Funnel by Platform</h3>
+                    <canvas id="chart-funnel"></canvas>
+                </div>
+            </div>
+
+            <!-- Virality + Growth -->
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h3>Viral Posts (3x+ Average)</h3>
+                    <div id="viral-posts-list" style="max-height:400px;overflow-y:auto"></div>
+                </div>
+                <div class="chart-container">
+                    <h3>Growth Velocity — Monthly Output</h3>
+                    <canvas id="chart-growth"></canvas>
+                </div>
+            </div>
+
+            <!-- Hashtag Performance -->
+            <div class="table-section">
+                <h3>Top Hashtag Performance</h3>
+                <div id="hashtag-perf-table"></div>
+            </div>
+
+            <!-- Cross-Post Tracker -->
+            <div class="table-section">
+                <h3>Cross-Posted Content</h3>
+                <p style="color:#6a6a8a;margin-bottom:12px">Same content posted to multiple platforms — compare performance.</p>
+                <div id="cross-post-table"></div>
+            </div>
+
+            <!-- Audience Overlap -->
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h3>Superfans — Top Commenters</h3>
+                    <div id="top-commenters-list" style="max-height:400px;overflow-y:auto"></div>
+                </div>
+                <div class="chart-container">
+                    <h3>Cross-Platform Audience</h3>
+                    <div id="audience-overlap-list" style="max-height:400px;overflow-y:auto"></div>
+                </div>
+            </div>
+
+            <!-- Hook Type A/B Analysis -->
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h3>Hook Type Performance (A/B Analysis)</h3>
+                    <canvas id="chart-hook-types"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Hook Type Distribution</h3>
+                    <canvas id="chart-hook-dist"></canvas>
+                </div>
+            </div>
+            <div class="table-section">
+                <div id="hook-type-table"></div>
+            </div>
+
+            <!-- Hook Library -->
+            <div class="table-section">
+                <h3>Caption Hook Library — Top Performing Openings</h3>
+                <div id="hook-library-table"></div>
+            </div>
+
+            <!-- High-Value Unresponded Comments -->
+            <div class="table-section">
+                <h3>Action Required — High-Value Unresponded Questions</h3>
+                <p style="color:#6a6a8a;margin-bottom:12px">Questions with 2+ likes that haven't been replied to.</p>
+                <div id="high-value-comments-table"></div>
+            </div>
+
+            <!-- Doesn't Follow Back -->
+            <div class="table-section">
+                <h3>Doesn't Follow Back — Cross Platform</h3>
+                <p style="color:#6a6a8a;margin-bottom:12px">People you follow who don't follow you back. Consider unfollowing to improve your follower ratio.</p>
+                <div id="follow-back-summary"></div>
+                <div id="follow-back-filters" style="display:flex;gap:8px;margin:12px 0;flex-wrap:wrap"></div>
+                <div id="follow-back-table"></div>
+            </div>
+        </div>
+
+        <!-- ==================== CREATOR RESEARCH PAGE ==================== -->
+        <div id="page-creators" class="page">
+            <div class="section-header">
+                <h2>Creator Research</h2>
+            </div>
+
+            <div class="post-entry-card">
+                <h3>Analyze a Creator</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Handle / Username</label>
+                        <input type="text" id="creator-handle" placeholder="@username">
+                    </div>
+                    <div class="form-group">
+                        <label>Platform</label>
+                        <select id="creator-platform">
+                            <option value="instagram">Instagram</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="threads">Threads</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Niche</label>
+                        <select id="creator-niche">
+                            <option value="finance">Finance / Investing</option>
+                            <option value="entrepreneurship">Entrepreneurship</option>
+                            <option value="real-estate">Real Estate</option>
+                            <option value="tech">Tech / AI</option>
+                            <option value="lifestyle">Lifestyle</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="analyzeCreator()">Analyze Creator</button>
+            </div>
+
+            <div id="creator-results"></div>
+
+            <div class="section-header mt-2">
+                <h3>Watched Creators</h3>
+            </div>
+            <div id="watched-creators"></div>
+        </div>
+
+        <!-- ==================== THUMBNAILS PAGE ==================== -->
+        <div id="page-thumbnails" class="page">
+            <div class="section-header">
+                <h2>Thumbnail Creator</h2>
+            </div>
+
+            <div class="post-entry-card">
+                <h3>Generate Thumbnails</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Title / Hook Text</label>
+                        <input type="text" id="thumb-title" placeholder="e.g., 5 Side Hustles That Pay $1000/Week">
+                    </div>
+                    <div class="form-group">
+                        <label>Style</label>
+                        <select id="thumb-style">
+                            <option value="bold">Bold Text + Color Pop</option>
+                            <option value="minimal">Clean & Minimal</option>
+                            <option value="split">Split Screen</option>
+                            <option value="gradient">Gradient Overlay</option>
+                            <option value="dark">Dark & Dramatic</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Platform</label>
+                        <select id="thumb-platform">
+                            <option value="youtube">YouTube (16:9)</option>
+                            <option value="instagram">Instagram (1:1)</option>
+                            <option value="tiktok">TikTok (9:16)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Accent Color</label>
+                        <input type="color" id="thumb-color" value="#6c5ce7" style="height:42px; padding:4px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Subtitle (optional)</label>
+                        <input type="text" id="thumb-subtitle" placeholder="e.g., No Experience Needed">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="generateThumbnails()">Generate 4 Variations</button>
+            </div>
+
+            <div class="thumbnail-grid" id="thumbnail-results"></div>
+
+            <div id="thumb-download-area" style="display:none;" class="mt-2">
+                <button class="btn btn-success" onclick="downloadThumbnail()">Download Selected</button>
+            </div>
+        </div>
+
+        <!-- ==================== CONTENT CALENDAR PAGE ==================== -->
+        <div id="page-calendar" class="page">
+            <div class="section-header">
+                <h2>Content Calendar</h2>
+                <div class="flex gap-1">
+                    <button class="btn btn-secondary" onclick="calendarNav(-1)">&larr; Prev</button>
+                    <span id="calendar-month-label" style="padding:10px 16px; font-weight:600;"></span>
+                    <button class="btn btn-secondary" onclick="calendarNav(1)">Next &rarr;</button>
+                    <button class="btn btn-primary" onclick="showAddEventModal()">+ Add Content</button>
+                </div>
+            </div>
+
+            <div class="calendar-grid" id="calendar-grid"></div>
+
+            <div class="table-section">
+                <h3 class="mb-2">Upcoming Content</h3>
+                <div id="upcoming-content"></div>
+            </div>
+        </div>
+
+        <!-- ==================== MANYCHAT PAGE ==================== -->
+        <div id="page-manychat" class="page">
+            <div class="section-header">
+                <h2>ManyChat Automation Flows</h2>
+                <button class="btn btn-primary" onclick="showAddFlowModal()">+ Create Flow</button>
+            </div>
+
+            <div id="manychat-flows"></div>
+        </div>
+    </div>
+
+    <!-- ==================== MODALS ==================== -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" id="modal-content" onclick="event.stopPropagation()">
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================================
+    // DATA STORE — Loads from JSON files with localStorage fallback
+    // ============================================================
+    const STORE_KEY = 'fwp_dashboard';
+    const DATA_BASE = './data/';
+    let scrapeState = null;
+
+    // Default profiles (used when scrape_state has no follower data)
+    const DEFAULT_PROFILES = {
+        instagram: { handle: '@phillip.karaya', followers: 10900, following: 5750, posts: 675 },
+        tiktok: { handle: '@financewithphil', followers: 14100, following: 365, likes: 189300 },
+        youtube: { handle: 'Finance With Phil', subscribers: 5130, videos: 666 },
+        threads: { handle: '@phillip.karaya', followers: 1787 }
+    };
+
+    function getDefaultStore() {
+        return {
+            profiles: JSON.parse(JSON.stringify(DEFAULT_PROFILES)),
+            posts: [],
+            comments: [],
+            creators: [],
+            calendar: [],
+            flows: getDefaultFlows(),
+        };
+    }
+
+    function loadStoreFromLocalStorage() {
+        try {
+            const raw = localStorage.getItem(STORE_KEY);
+            if (!raw) return null;
+            const cached = JSON.parse(raw);
+            // Reject cached data if it contains fake sample posts (id starts with "p_")
+            if (cached?.posts?.some(p => p.id && p.id.startsWith('p_'))) {
+                localStorage.removeItem(STORE_KEY);
+                return null;
+            }
+            return cached;
+        } catch { return null; }
+    }
+
+    function saveStore() {
+        localStorage.setItem(STORE_KEY, JSON.stringify(store));
+    }
+
+    // Fetch a single JSON file; returns null on any failure
+    async function fetchJSON(url) {
+        try {
+            const resp = await fetch(url, { cache: 'no-store' });
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            return data;
+        } catch { return null; }
+    }
+
+    // Main data loader — fetches all JSON files, merges, falls back to localStorage
+    async function loadRealData() {
+        const btn = document.getElementById('btn-refresh');
+        if (btn) { btn.classList.add('loading'); btn.innerHTML = '&#x21bb; Loading...'; }
+
+        try {
+            const [igPosts, ttPosts, ytPosts, thPosts, comments, state] = await Promise.all([
+                fetchJSON(DATA_BASE + 'instagram_posts.json'),
+                fetchJSON(DATA_BASE + 'tiktok_posts.json'),
+                fetchJSON(DATA_BASE + 'youtube_posts.json'),
+                fetchJSON(DATA_BASE + 'threads_posts.json'),
+                fetchJSON(DATA_BASE + 'comments.json'),
+                fetchJSON(DATA_BASE + 'scrape_state.json'),
+            ]);
+
+            scrapeState = state;
+
+            // Merge all platform posts
+            const allPosts = [
+                ...(Array.isArray(igPosts) ? igPosts : []),
+                ...(Array.isArray(ttPosts) ? ttPosts : []),
+                ...(Array.isArray(ytPosts) ? ytPosts : []),
+                ...(Array.isArray(thPosts) ? thPosts : []),
+            ];
+
+            const realComments = Array.isArray(comments) ? comments : [];
+            const hasRealData = allPosts.length > 0;
+
+            if (hasRealData) {
+                // Real data available — use it
+                store.posts = allPosts;
+                if (realComments.length > 0) store.comments = realComments;
+
+                // Update profiles from scrape_state follower counts if available
+                if (state && state.followers) {
+                    for (const plat of ['instagram', 'tiktok', 'youtube', 'threads']) {
+                        if (state.followers[plat]) {
+                            if (plat === 'youtube') {
+                                store.profiles[plat].subscribers = state.followers[plat];
+                            } else {
+                                store.profiles[plat].followers = state.followers[plat];
+                            }
+                        }
+                    }
+                }
+
+                // Cache to localStorage
+                saveStore();
+                updateDataStatus('live', state);
+            } else {
+                // No real data yet — try localStorage cache
+                const cached = loadStoreFromLocalStorage();
+                if (cached && cached.posts && cached.posts.length > 0) {
+                    // Use localStorage cache but keep existing store structure
+                    store.posts = cached.posts;
+                    store.comments = cached.comments || store.comments;
+                    store.profiles = cached.profiles || store.profiles;
+                    store.creators = cached.creators || store.creators;
+                    store.calendar = cached.calendar || store.calendar;
+                    store.flows = cached.flows || store.flows;
+                    updateDataStatus('stale', state);
+                } else {
+                    updateDataStatus('empty', state);
+                }
+            }
+        } catch (err) {
+            console.warn('loadRealData failed, using fallback:', err);
+            const cached = loadStoreFromLocalStorage();
+            if (cached) {
+                store.posts = cached.posts || store.posts;
+                store.comments = cached.comments || store.comments;
+            }
+            updateDataStatus('stale', null);
+        } finally {
+            if (btn) { btn.classList.remove('loading'); btn.innerHTML = '&#x21bb; Refresh Data'; }
+        }
+    }
+
+    function updateDataStatus(status, state) {
+        const dot = document.querySelector('#data-status .status-dot');
+        const label = document.getElementById('last-scraped-label');
+        if (!dot || !label) return;
+
+        dot.className = 'status-dot ' + status;
+
+        if (status === 'live' && state) {
+            // Find most recent scrape date across platforms
+            let latest = null;
+            for (const plat of ['instagram', 'tiktok', 'youtube', 'threads']) {
+                const d = state[plat]?.lastScrapedDate;
+                if (d && (!latest || d > latest)) latest = d;
+            }
+            const totalScraped = ['instagram', 'tiktok', 'youtube', 'threads']
+                .reduce((sum, p) => sum + (state[p]?.totalScraped || 0), 0);
+            label.textContent = latest
+                ? `${totalScraped} posts · Last scraped ${new Date(latest).toLocaleDateString()}`
+                : `${store.posts.length} posts loaded`;
+        } else if (status === 'stale') {
+            label.textContent = `${store.posts.length} posts (cached)`;
+        } else {
+            label.textContent = `No data yet · Run scraper to load real data`;
+        }
+    }
+
+    async function refreshData() {
+        await loadRealData();
+        await loadAnalytics();
+        // Re-render current active page
+        const activePage = document.querySelector('.page.active')?.id?.replace('page-', '');
+        const renderers = {
+            overview: renderOverview,
+            posts: renderPosts,
+            comments: renderComments,
+            insights: renderInsights,
+            creators: renderCreators,
+            calendar: renderCalendar,
+            manychat: renderManyChat
+        };
+        if (renderers[activePage]) renderers[activePage]();
+    }
+
+    // Initialize store with defaults, then overlay real data
+    let store = getDefaultStore();
+    // Restore non-post data from localStorage (creators, calendar, flows)
+    const _cached = loadStoreFromLocalStorage();
+    if (_cached) {
+        store.creators = _cached.creators || store.creators;
+        store.calendar = _cached.calendar || store.calendar;
+        store.flows = _cached.flows || store.flows;
+    }
+
+    // ============================================================
+    // SAMPLE DATA
+    // ============================================================
+    // Sample data generators removed — dashboard uses only real scraped data from ./data/*.json
+    // If no data files are found, the dashboard shows an empty state with "No data yet" messaging
+
+    function getDefaultFlows() {
+        return [
+            {
+                id: 'flow_1',
+                name: 'Free Course Lead Magnet (Instagram)',
+                platform: 'instagram',
+                type: 'lead_capture',
+                description: 'When someone comments "COURSE" on any post, auto-DM them the free financial literacy course link.',
+                trigger: 'Comment contains keyword: COURSE',
+                steps: [
+                    { type: 'Trigger', text: 'User comments "COURSE" on any post' },
+                    { type: 'Condition', text: 'Check if user is a new subscriber' },
+                    { type: 'Action', text: 'Send DM: "Hey! Here\'s your free Finance With Phil course link: [LINK]"' },
+                    { type: 'Action', text: 'Tag user as "course_lead"' },
+                    { type: 'Delay', text: 'Wait 24 hours' },
+                    { type: 'Action', text: 'Follow-up DM: "Did you get a chance to check out the course? Let me know if you have questions!"' }
+                ]
+            },
+            {
+                id: 'flow_2',
+                name: 'Story Mention Auto-Reply (Instagram)',
+                platform: 'instagram',
+                type: 'engagement',
+                description: 'Automatically thank users who mention you in their stories.',
+                trigger: 'Story mention detected',
+                steps: [
+                    { type: 'Trigger', text: 'User mentions @phillip.karaya in story' },
+                    { type: 'Action', text: 'Send DM: "Thanks for the shoutout! I really appreciate you sharing my content"' },
+                    { type: 'Action', text: 'Tag user as "brand_advocate"' }
+                ]
+            },
+            {
+                id: 'flow_3',
+                name: 'Consultation Funnel (Instagram)',
+                platform: 'instagram',
+                type: 'sales',
+                description: 'When someone comments "CONSULT" or DMs about consulting, guide them through a booking funnel.',
+                trigger: 'Comment/DM keyword: CONSULT',
+                steps: [
+                    { type: 'Trigger', text: 'User comments "CONSULT" or DMs about consulting' },
+                    { type: 'Action', text: 'Send DM: "Thanks for your interest in a consultation! Let me ask a few quick questions..."' },
+                    { type: 'Question', text: 'Ask: "What area do you need help with? A) Credit B) Investing C) Real Estate D) Business"' },
+                    { type: 'Question', text: 'Ask: "What\'s your current monthly income range?"' },
+                    { type: 'Action', text: 'Send booking link: "Based on your answers, here\'s my calendar to book a session: [CALENDLY_LINK]"' },
+                    { type: 'Delay', text: 'Wait 48 hours if no booking' },
+                    { type: 'Action', text: 'Follow-up: "Just checking in — still interested in a consultation? I have a few spots left this week."' }
+                ]
+            },
+            {
+                id: 'flow_4',
+                name: 'Free Resource Keyword (TikTok)',
+                platform: 'tiktok',
+                type: 'lead_capture',
+                description: 'When someone comments "FREE" on TikTok, auto-reply with a link to download a free budgeting template.',
+                trigger: 'Comment contains keyword: FREE',
+                steps: [
+                    { type: 'Trigger', text: 'User comments "FREE" on any TikTok video' },
+                    { type: 'Action', text: 'Auto-reply comment: "Just sent you a DM with the free resource!"' },
+                    { type: 'Action', text: 'Send DM: "Here\'s your free budgeting template: [LINK]. Follow for more money tips!"' },
+                    { type: 'Action', text: 'Tag user as "tiktok_lead"' }
+                ]
+            },
+            {
+                id: 'flow_5',
+                name: 'Welcome New Follower (Instagram)',
+                platform: 'instagram',
+                type: 'engagement',
+                description: 'Send a welcome message to new followers with a value-packed intro.',
+                trigger: 'New follower detected',
+                steps: [
+                    { type: 'Trigger', text: 'New user follows @phillip.karaya' },
+                    { type: 'Delay', text: 'Wait 5 minutes' },
+                    { type: 'Action', text: 'Send DM: "Welcome to the Finance With Phil community! I help people build wealth through smart money moves."' },
+                    { type: 'Question', text: 'Ask: "What\'s your #1 money goal right now? A) Save more B) Invest C) Start a business D) Fix credit"' },
+                    { type: 'Action', text: 'Based on answer, send relevant free resource link' },
+                    { type: 'Action', text: 'Tag user with their interest area' }
+                ]
+            },
+            {
+                id: 'flow_6',
+                name: 'Product Recommendation (TikTok)',
+                platform: 'tiktok',
+                type: 'sales',
+                description: 'When someone asks about recommended tools/apps, send them an affiliate link bundle.',
+                trigger: 'DM keyword: TOOLS or APPS',
+                steps: [
+                    { type: 'Trigger', text: 'User DMs "TOOLS" or "APPS"' },
+                    { type: 'Action', text: 'Send DM: "Here are the exact tools I use for my finances and businesses:"' },
+                    { type: 'Action', text: 'Send list with affiliate links: Investing app, Budgeting app, Credit monitoring, Business tools' },
+                    { type: 'Delay', text: 'Wait 3 days' },
+                    { type: 'Action', text: 'Follow-up: "Have you tried any of those tools yet? Lmk if you need help setting anything up!"' }
+                ]
+            }
+        ];
+    }
+
+    // ============================================================
+    // CHART COLORS
+    // ============================================================
+    const COLORS = ['#6c5ce7', '#00cec9', '#fd79a8', '#fdcb6e', '#74b9ff', '#ff6b6b', '#a29bfe', '#55efc4'];
+    const PLATFORM_COLORS = { instagram: '#e1306c', tiktok: '#00f2ea', youtube: '#ff0000', threads: '#888888' };
+
+    // ============================================================
+    // NAVIGATION
+    // ============================================================
+    function showPage(page) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('page-' + page).classList.add('active');
+        event.target.classList.add('active');
+
+        // Re-render the page
+        const renderers = {
+            overview: renderOverview,
+            posts: renderPosts,
+            comments: renderComments,
+            insights: renderInsights,
+            creators: renderCreators,
+            thumbnails: () => {},
+            calendar: renderCalendar,
+            manychat: renderManyChat
+        };
+        if (renderers[page]) renderers[page]();
+    }
+
+    // ============================================================
+    // FORMAT HELPERS
+    // ============================================================
+    function fmt(n) {
+        if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+        if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+        return n.toLocaleString();
+    }
+
+    function platformBadge(p) {
+        const map = { instagram: 'IG', tiktok: 'TT', youtube: 'YT', threads: 'TH' };
+        const cls = { instagram: 'badge-ig', tiktok: 'badge-tt', youtube: 'badge-yt', threads: 'badge-th' };
+        return `<span class="platform-badge ${cls[p]}">${map[p]}</span>`;
+    }
+
+    // ============================================================
+    // OVERVIEW PAGE
+    // ============================================================
+    let chartInstances = {};
+
+    function destroyChart(id) {
+        if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+    }
+
+    function renderOverview() {
+        // KPIs
+        const totalFollowers = (store.profiles.instagram.followers || 0) + (store.profiles.tiktok.followers || 0) +
+            (store.profiles.youtube.subscribers || 0) + (store.profiles.threads.followers || 0);
+        const totalViews = store.posts.reduce((s, p) => s + p.views, 0);
+        const totalEng = store.posts.reduce((s, p) => s + p.likes + p.comments + p.shares, 0);
+        const avgEng = store.posts.length > 0 ? (totalEng / store.posts.reduce((s, p) => s + p.views, 0) * 100).toFixed(2) : 0;
+        const totalPosts = store.posts.length;
+
+        document.getElementById('overview-kpis').innerHTML = `
+            <div class="kpi-card">
+                <div class="kpi-label">Total Followers</div>
+                <div class="kpi-value">${fmt(totalFollowers)}</div>
+                <div class="kpi-change positive">Across 4 platforms</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">TOTAL VIEWS</div>
+                <div class="kpi-value">${fmt(totalViews)}</div>
+                <div class="kpi-change positive">All content</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Avg Engagement Rate</div>
+                <div class="kpi-value">${avgEng}%</div>
+                <div class="kpi-change ${avgEng > 3 ? 'positive' : 'negative'}">${avgEng > 3 ? 'Above' : 'Below'} average</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Total Posts</div>
+                <div class="kpi-value">${totalPosts}</div>
+                <div class="kpi-change positive">Tracked posts</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Total Comments</div>
+                <div class="kpi-value">${fmt(store.comments.length)}</div>
+                <div class="kpi-change positive">With sentiment</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Total Likes</div>
+                <div class="kpi-value">${fmt(store.posts.reduce((s,p) => s + (p.likes||0), 0))}</div>
+                <div class="kpi-change positive">All platforms</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Viral Posts</div>
+                <div class="kpi-value">${analyticsData?.viralPosts?.length || 0}</div>
+                <div class="kpi-change positive">3x+ average</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Cross-Posts</div>
+                <div class="kpi-value">${analyticsData?.crossPosts?.length || 0}</div>
+                <div class="kpi-change positive">Multi-platform</div>
+            </div>
+        `;
+
+        // Monthly Post Activity Chart (real data — posts per month per platform)
+        destroyChart('follower-growth');
+        const monthlyActivity = {};
+        const platforms = ['instagram', 'tiktok', 'youtube', 'threads'];
+        store.posts.forEach(p => {
+            if (!p.date) return;
+            const key = p.date.substring(0, 7); // "YYYY-MM"
+            if (!monthlyActivity[key]) monthlyActivity[key] = { instagram: 0, tiktok: 0, youtube: 0, threads: 0 };
+            if (monthlyActivity[key][p.platform] !== undefined) monthlyActivity[key][p.platform]++;
+        });
+        const sortedMonths = Object.keys(monthlyActivity).sort();
+        const recentMonths = sortedMonths.slice(-18); // Last 18 months
+        const monthLabels = recentMonths.map(m => {
+            const [y, mo] = m.split('-');
+            return new Date(y, mo - 1).toLocaleString('default', { month: 'short', year: '2-digit' });
+        });
+
+        chartInstances['follower-growth'] = new Chart(document.getElementById('chart-follower-growth'), {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: platforms.map(p => ({
+                    label: p.charAt(0).toUpperCase() + p.slice(1),
+                    data: recentMonths.map(m => monthlyActivity[m]?.[p] || 0),
+                    borderColor: PLATFORM_COLORS[p],
+                    backgroundColor: PLATFORM_COLORS[p] + '20',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    fill: false,
+                }))
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { color: '#a0a0c0', usePointStyle: true, padding: 15 } },
+                    title: { display: true, text: 'Monthly Posts by Platform (Real Data)', color: '#a0a0c0', font: { size: 11 } }
+                },
+                scales: {
+                    x: { grid: { color: '#2a2a4a' }, ticks: { color: '#6a6a8a' } },
+                    y: { grid: { color: '#2a2a4a' }, ticks: { color: '#6a6a8a', stepSize: 5 }, title: { display: true, text: 'Posts', color: '#6a6a8a' } }
+                }
+            }
+        });
+
+        // Engagement Rate by Platform
+        destroyChart('engagement-rate');
+        const platEngData = {};
+        store.posts.forEach(p => {
+            if (!platEngData[p.platform]) platEngData[p.platform] = [];
+            platEngData[p.platform].push(parseFloat(p.engagementRate));
+        });
+        const platLabels = Object.keys(platEngData);
+        const platAvgs = platLabels.map(p => (platEngData[p].reduce((a, b) => a + b, 0) / platEngData[p].length).toFixed(2));
+
+        chartInstances['engagement-rate'] = new Chart(document.getElementById('chart-engagement-rate'), {
+            type: 'bar',
+            data: {
+                labels: platLabels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+                datasets: [{
+                    label: 'Avg Engagement %',
+                    data: platAvgs,
+                    backgroundColor: platLabels.map(p => PLATFORM_COLORS[p] + 'AA'),
+                    borderColor: platLabels.map(p => PLATFORM_COLORS[p]),
+                    borderWidth: 1,
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#a0a0c0' } },
+                    y: { grid: { color: '#2a2a4a' }, ticks: { color: '#6a6a8a', callback: v => v + '%' }, beginAtZero: true }
+                }
+            }
+        });
+
+        // Views trend
+        destroyChart('views-trend');
+        const sortedPosts = [...store.posts].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const viewLabels = sortedPosts.map(p => p.date);
+        const viewsByPlatform = {};
+        sortedPosts.forEach(p => {
+            if (!viewsByPlatform[p.platform]) viewsByPlatform[p.platform] = [];
+            viewsByPlatform[p.platform].push(p.views);
+        });
+
+        chartInstances['views-trend'] = new Chart(document.getElementById('chart-views-trend'), {
+            type: 'bar',
+            data: {
+                labels: sortedPosts.map(p => p.title.substring(0, 25) + '...'),
+                datasets: [{
+                    label: 'Views',
+                    data: sortedPosts.map(p => p.views),
+                    backgroundColor: sortedPosts.map(p => PLATFORM_COLORS[p.platform] + '80'),
+                    borderColor: sortedPosts.map(p => PLATFORM_COLORS[p.platform]),
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.parsed.y) + ' views' } } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#6a6a8a', maxRotation: 45 } },
+                    y: { grid: { color: '#2a2a4a' }, ticks: { color: '#6a6a8a', callback: v => fmt(v) } }
+                }
+            }
+        });
+
+        // Platform distribution
+        destroyChart('platform-dist');
+        const platCounts = {};
+        store.posts.forEach(p => { platCounts[p.platform] = (platCounts[p.platform] || 0) + 1; });
+
+        chartInstances['platform-dist'] = new Chart(document.getElementById('chart-platform-dist'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(platCounts).map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+                datasets: [{
+                    data: Object.values(platCounts),
+                    backgroundColor: Object.keys(platCounts).map(p => PLATFORM_COLORS[p] + 'CC'),
+                    borderColor: '#1a1a2e',
+                    borderWidth: 3,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: { legend: { position: 'right', labels: { color: '#a0a0c0', usePointStyle: true, padding: 12 } } }
+            }
+        });
+
+        // === LAST POSTED & CADENCE CARDS ===
+        const lp = analyticsData?.lastPosted;
+        const cs = analyticsData?.cadenceStats;
+        if (lp) {
+            let lpHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">';
+            for (const plat of ['instagram','tiktok','youtube','threads']) {
+                const p = lp[plat];
+                const c = cs?.[plat];
+                const days = p?.daysSince ?? -1;
+                const color = days <= 7 ? '#22c55e' : days <= 30 ? '#f59e0b' : '#f43f5e';
+                const label = days === 0 ? 'Today' : days === 1 ? 'Yesterday' : days > 0 ? `${days} days ago` : 'Unknown';
+                lpHtml += `<div style="background:rgba(30,30,60,0.6);border:1px solid #2a2a4a;border-radius:12px;padding:16px;border-left:4px solid ${PLATFORM_COLORS[plat]}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                        ${platformBadge(plat)}
+                        <span style="color:${color};font-weight:700;font-size:14px">${label}</span>
+                    </div>
+                    <div style="color:#e0e0ff;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px" title="${p?.lastTitle || ''}">${p?.lastTitle || 'No posts'}</div>
+                    <div style="display:flex;gap:12px;font-size:11px;color:#6a6a8a">
+                        <span>${c?.postsPerWeek || 0}/wk</span>
+                        <span>${c?.postsPerMonth || 0}/mo</span>
+                        <span>Avg gap: ${c?.avgDaysBetween || 0}d</span>
+                    </div>
+                </div>`;
+            }
+            lpHtml += '</div>';
+            document.getElementById('last-posted-cards').innerHTML = lpHtml;
+        }
+
+        // === RESPONSE RATE CHARTS ===
+        const rr = analyticsData?.responseRate;
+        if (rr) {
+            // KPIs
+            document.getElementById('response-rate-kpis').innerHTML = `
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+                    <div class="kpi-card"><div class="kpi-label">Overall Response Rate</div><div class="kpi-value">${rr.overall.rate}%</div><div class="kpi-change ${rr.overall.rate > 10 ? 'positive' : 'negative'}">${rr.overall.replied} of ${fmt(rr.overall.total)}</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Unreplied Comments</div><div class="kpi-value">${fmt(rr.overall.unreplied)}</div><div class="kpi-change negative">Need attention</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Questions Unanswered</div><div class="kpi-value">${rr.bySentiment.question?.total - rr.bySentiment.question?.replied || 0}</div><div class="kpi-change negative">${rr.bySentiment.question?.responseRate || 0}% answered</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Priority Unreplied</div><div class="kpi-value">${rr.priorityUnreplied?.length || 0}</div><div class="kpi-change negative">High-value comments</div></div>
+                </div>`;
+
+            // Response rate by platform chart
+            destroyChart('response-rate');
+            const rrPlats = ['instagram','tiktok','youtube','threads'];
+            chartInstances['response-rate'] = new Chart(document.getElementById('chart-response-rate'), {
+                type: 'bar',
+                data: {
+                    labels: rrPlats.map(p => p.charAt(0).toUpperCase() + p.slice(1)),
+                    datasets: [{
+                        label: 'Replied',
+                        data: rrPlats.map(p => rr.byPlatform[p]?.replied || 0),
+                        backgroundColor: 'rgba(34,197,94,0.7)', borderRadius: 4
+                    },{
+                        label: 'Unreplied',
+                        data: rrPlats.map(p => rr.byPlatform[p]?.unreplied || 0),
+                        backgroundColor: 'rgba(244,63,94,0.7)', borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#a0a0c0' } } },
+                    scales: {
+                        x: { stacked: true, ticks: { color: '#6a6a8a' }, grid: { color: '#2a2a4a' } },
+                        y: { stacked: true, ticks: { color: '#6a6a8a' }, grid: { color: '#2a2a4a' } }
+                    }
+                }
+            });
+
+            // Response by sentiment chart
+            destroyChart('response-sentiment');
+            const sentiments = ['positive','negative','question','neutral'];
+            const sentColors = { positive: '#22c55e', negative: '#f43f5e', question: '#3b82f6', neutral: '#6b7280' };
+            chartInstances['response-sentiment'] = new Chart(document.getElementById('chart-response-sentiment'), {
+                type: 'doughnut',
+                data: {
+                    labels: sentiments.map(s => s.charAt(0).toUpperCase() + s.slice(1)),
+                    datasets: [{
+                        data: sentiments.map(s => rr.bySentiment[s]?.total || 0),
+                        backgroundColor: sentiments.map(s => sentColors[s] + 'CC'),
+                        borderColor: '#1a1a2e', borderWidth: 3,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '55%',
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#a0a0c0', usePointStyle: true, padding: 10 } },
+                        tooltip: { callbacks: { label: ctx => {
+                            const s = sentiments[ctx.dataIndex];
+                            const d = rr.bySentiment[s];
+                            return `${ctx.label}: ${d.total} (${d.responseRate}% replied)`;
+                        }}}
+                    }
+                }
+            });
+        }
+
+        // === REVENUE TRACKER ===
+        renderRevenue();
+
+        // Top posts table
+        const topPosts = [...store.posts].sort((a, b) => b.views - a.views).slice(0, 10);
+        renderPostTable('top-posts-table', topPosts);
+    }
+
+    // ============================================================
+    // REVENUE TRACKER
+    // ============================================================
+    function renderRevenue() {
+        const rev = analyticsData?.revenue || { deals: [], summary: { totalRevenue: 0, byPlatform: {}, byType: {} } };
+        const deals = rev.deals || [];
+        const totalViews = store.posts.reduce((s, p) => s + p.views, 0);
+        const totalFollowers = (store.profiles.instagram?.followers || 0) + (store.profiles.tiktok?.followers || 0) +
+            (store.profiles.youtube?.subscribers || 0) + (store.profiles.threads?.followers || 0);
+
+        // Recompute summary from deals
+        let totalRev = 0;
+        const byPlat = { instagram: 0, tiktok: 0, youtube: 0, threads: 0 };
+        const byType = {};
+        deals.forEach(d => {
+            totalRev += d.amount || 0;
+            if (byPlat[d.platform] !== undefined) byPlat[d.platform] += d.amount || 0;
+            byType[d.type] = (byType[d.type] || 0) + (d.amount || 0);
+        });
+
+        let sumHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">
+            <div class="kpi-card"><div class="kpi-label">Total Revenue</div><div class="kpi-value" style="color:#22c55e">$${totalRev.toLocaleString()}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Revenue / 1K Views</div><div class="kpi-value">$${totalViews > 0 ? (totalRev / totalViews * 1000).toFixed(2) : '0'}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Revenue / Follower</div><div class="kpi-value">$${totalFollowers > 0 ? (totalRev / totalFollowers).toFixed(2) : '0'}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Deals Tracked</div><div class="kpi-value">${deals.length}</div></div>
+        </div>`;
+        if (Object.keys(byType).length > 0) {
+            sumHtml += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">';
+            for (const [type, amt] of Object.entries(byType)) {
+                sumHtml += `<span class="tag tag-med">${type}: $${amt.toLocaleString()}</span>`;
+            }
+            sumHtml += '</div>';
+        }
+        document.getElementById('revenue-summary').innerHTML = sumHtml;
+
+        // Deals table
+        let tHtml = '';
+        if (deals.length > 0) {
+            tHtml = '<table class="data-table"><thead><tr><th>Date</th><th>Brand</th><th>Platform</th><th>Type</th><th>Amount</th><th>Notes</th><th></th></tr></thead><tbody>';
+            deals.forEach((d, i) => {
+                tHtml += `<tr>
+                    <td>${d.date}</td><td style="color:#e0e0ff;font-weight:600">${d.brand}</td><td>${platformBadge(d.platform)}</td>
+                    <td><span class="tag tag-low">${d.type}</span></td>
+                    <td style="color:#22c55e;font-weight:700">$${(d.amount||0).toLocaleString()}</td>
+                    <td style="color:#6a6a8a;max-width:200px;overflow:hidden;text-overflow:ellipsis">${d.notes||''}</td>
+                    <td><button class="btn btn-secondary btn-sm" onclick="removeDeal(${i})" style="padding:2px 8px;font-size:11px">x</button></td>
+                </tr>`;
+            });
+            tHtml += '</tbody></table>';
+        } else {
+            tHtml = '<p style="color:#6a6a8a;padding:12px">No deals tracked yet. Click "+ Add Deal" to log brand deals, sponsorships, and affiliate revenue.</p>';
+        }
+        document.getElementById('revenue-deals-table').innerHTML = tHtml;
+    }
+
+    function showAddDealModal() {
+        document.getElementById('modal-body').innerHTML = `
+            <h2>Add Revenue Deal</h2>
+            <div class="form-row">
+                <div class="form-group"><label>Brand / Source</label><input type="text" id="deal-brand" placeholder="e.g., NordVPN"></div>
+                <div class="form-group"><label>Amount ($)</label><input type="number" id="deal-amount" placeholder="e.g., 500"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Platform</label>
+                    <select id="deal-platform"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="youtube">YouTube</option><option value="threads">Threads</option></select>
+                </div>
+                <div class="form-group"><label>Type</label>
+                    <select id="deal-type"><option value="sponsorship">Sponsorship</option><option value="brand_deal">Brand Deal</option><option value="affiliate">Affiliate</option><option value="ad_revenue">Ad Revenue</option><option value="other">Other</option></select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Date</label><input type="date" id="deal-date" value="${new Date().toISOString().split('T')[0]}"></div>
+                <div class="form-group"><label>Related Post ID (optional)</label><input type="text" id="deal-postid" placeholder="e.g., ig_123456"></div>
+            </div>
+            <div class="form-group mb-2"><label>Notes</label><textarea id="deal-notes" placeholder="Details about the deal..."></textarea></div>
+            <button class="btn btn-primary" onclick="saveDeal()">Save Deal</button>
+        `;
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    function saveDeal() {
+        const deal = {
+            brand: document.getElementById('deal-brand').value,
+            amount: parseFloat(document.getElementById('deal-amount').value) || 0,
+            platform: document.getElementById('deal-platform').value,
+            type: document.getElementById('deal-type').value,
+            date: document.getElementById('deal-date').value,
+            postId: document.getElementById('deal-postid').value,
+            notes: document.getElementById('deal-notes').value,
+        };
+        if (!deal.brand) return alert('Please enter a brand name');
+        if (!analyticsData.revenue) analyticsData.revenue = { deals: [], summary: {} };
+        analyticsData.revenue.deals.push(deal);
+        // Persist to localStorage
+        localStorage.setItem('fwp_revenue', JSON.stringify(analyticsData.revenue.deals));
+        closeModalDirect();
+        renderRevenue();
+    }
+
+    function removeDeal(idx) {
+        if (!confirm('Remove this deal?')) return;
+        analyticsData.revenue.deals.splice(idx, 1);
+        localStorage.setItem('fwp_revenue', JSON.stringify(analyticsData.revenue.deals));
+        renderRevenue();
+    }
+
+    function renderPostTable(containerId, posts) {
+        let html = `<table class="data-table">
+            <thead><tr>
+                <th>Title</th><th>Platform</th><th>Type</th><th>Date</th><th>Views</th><th>Likes</th><th>Comments</th><th>Eng %</th>
+            </tr></thead><tbody>`;
+        posts.forEach(p => {
+            const escapedId = (p.id || '').replace(/'/g, "\\'");
+            html += `<tr class="clickable-row" onclick="showPostDetail('${escapedId}')">
+                <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.title}</td>
+                <td>${platformBadge(p.platform)}</td>
+                <td>${p.type}</td>
+                <td>${p.date}</td>
+                <td>${fmt(p.views)}</td>
+                <td>${fmt(p.likes)}</td>
+                <td>${fmt(p.comments)}</td>
+                <td>${p.engagementRate}%</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById(containerId).innerHTML = html;
+    }
+
+    function showPostDetail(postId) {
+        const post = store.posts.find(p => p.id === postId);
+        if (!post) return;
+
+        const platformIcons = { instagram: '📸', tiktok: '🎵', youtube: '▶️', threads: '🧵' };
+        const icon = platformIcons[post.platform] || '📄';
+
+        const thumbHtml = post.thumbnailUrl
+            ? `<img class="post-detail-thumb" src="${post.thumbnailUrl}" alt="Thumbnail" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="post-detail-thumb-placeholder" style="display:none">${icon}</div>`
+            : `<div class="post-detail-thumb-placeholder">${icon}</div>`;
+
+        const captionHtml = post.caption
+            ? `<div style="margin-bottom:8px;font-size:12px;color:var(--text-secondary);text-transform:uppercase;">Caption / Description</div><div class="post-detail-caption">${post.caption}</div>`
+            : '';
+
+        const linkHtml = post.url
+            ? `<a class="post-detail-link" href="${post.url}" target="_blank" rel="noopener">View Original Post &#x2197;</a>`
+            : '';
+
+        const durationHtml = post.duration ? `<div class="meta-row">Duration: ${post.duration}</div>` : '';
+
+        document.getElementById('modal-body').innerHTML = `
+            <h2 style="margin-bottom:16px;">Post Details</h2>
+            <div class="post-detail-header">
+                ${thumbHtml}
+                <div class="post-detail-meta">
+                    <h3>${post.title}</h3>
+                    <div class="meta-row">${platformBadge(post.platform)} &nbsp; ${post.type} &nbsp; ${post.date} ${post.time ? '@ ' + post.time : ''}</div>
+                    ${durationHtml}
+                    ${post.hashtags ? `<div class="meta-row">${post.hashtags}</div>` : ''}
+                </div>
+            </div>
+            <div class="post-detail-stats">
+                <div class="post-detail-stat"><div class="stat-value">${fmt(post.views)}</div><div class="stat-label">Views</div></div>
+                <div class="post-detail-stat"><div class="stat-value">${fmt(post.likes)}</div><div class="stat-label">Likes</div></div>
+                <div class="post-detail-stat"><div class="stat-value">${fmt(post.comments)}</div><div class="stat-label">Comments</div></div>
+                <div class="post-detail-stat"><div class="stat-value">${fmt(post.shares)}</div><div class="stat-label">Shares</div></div>
+                <div class="post-detail-stat"><div class="stat-value">${fmt(post.saves || 0)}</div><div class="stat-label">Saves</div></div>
+                <div class="post-detail-stat"><div class="stat-value">${post.engagementRate}%</div><div class="stat-label">Engagement</div></div>
+            </div>
+            ${captionHtml}
+            <div style="display:flex;gap:10px;align-items:center;margin-top:12px;">
+                ${linkHtml}
+                ${post.notes ? `<span class="text-sm text-muted">Notes: ${post.notes}</span>` : ''}
+            </div>
+        `;
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    // ============================================================
+    // POST ANALYSIS PAGE
+    // ============================================================
+    function renderPosts() {
+        filterPosts();
+
+        // Post performance chart
+        destroyChart('post-performance');
+        const sorted = [...store.posts].sort((a, b) => new Date(a.date) - new Date(b.date));
+        chartInstances['post-performance'] = new Chart(document.getElementById('chart-post-performance'), {
+            type: 'line',
+            data: {
+                labels: sorted.map(p => p.date),
+                datasets: [
+                    { label: 'Views', data: sorted.map(p => p.views), borderColor: COLORS[0], tension: 0.3, yAxisID: 'y' },
+                    { label: 'Engagement', data: sorted.map(p => p.likes + p.comments + p.shares), borderColor: COLORS[1], tension: 0.3, yAxisID: 'y1' }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#a0a0c0' } } },
+                scales: {
+                    x: { grid: { color: '#2a2a4a' }, ticks: { color: '#6a6a8a' } },
+                    y: { position: 'left', grid: { color: '#2a2a4a' }, ticks: { color: '#6a6a8a', callback: v => fmt(v) } },
+                    y1: { position: 'right', grid: { display: false }, ticks: { color: '#6a6a8a', callback: v => fmt(v) } }
+                }
+            }
+        });
+
+        // Best times chart
+        destroyChart('best-times');
+        const hourBuckets = {};
+        store.posts.forEach(p => {
+            const h = parseInt(p.time.split(':')[0]);
+            hourBuckets[h] = (hourBuckets[h] || 0) + p.views;
+        });
+        const hours = Object.keys(hourBuckets).sort((a, b) => a - b);
+        chartInstances['best-times'] = new Chart(document.getElementById('chart-best-times'), {
+            type: 'bar',
+            data: {
+                labels: hours.map(h => h + ':00'),
+                datasets: [{ label: 'Total Views', data: hours.map(h => hourBuckets[h]), backgroundColor: COLORS[0] + '80', borderRadius: 6 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#a0a0c0' } },
+                    y: { grid: { color: '#2a2a4a' }, ticks: { color: '#6a6a8a', callback: v => fmt(v) } }
+                }
+            }
+        });
+    }
+
+    function filterPosts() {
+        const platform = document.getElementById('filter-post-platform').value;
+        const type = document.getElementById('filter-post-type').value;
+        const sort = document.getElementById('filter-post-sort').value;
+        const start = document.getElementById('filter-post-start').value;
+        const end = document.getElementById('filter-post-end').value;
+
+        let filtered = [...store.posts];
+        if (platform !== 'all') filtered = filtered.filter(p => p.platform === platform);
+        if (type !== 'all') filtered = filtered.filter(p => p.type === type);
+        if (start) filtered = filtered.filter(p => p.date >= start);
+        if (end) filtered = filtered.filter(p => p.date <= end);
+
+        const sortMap = {
+            date: (a, b) => new Date(b.date) - new Date(a.date),
+            views: (a, b) => b.views - a.views,
+            engagement: (a, b) => parseFloat(b.engagementRate) - parseFloat(a.engagementRate),
+            comments: (a, b) => b.comments - a.comments,
+        };
+        filtered.sort(sortMap[sort]);
+        renderPostTable('posts-table', filtered);
+    }
+
+    function showAddPostModal() {
+        document.getElementById('modal-body').innerHTML = `
+            <h2>Add New Post</h2>
+            <div class="form-row"><div class="form-group">
+                <label>Title / Caption</label>
+                <input type="text" id="new-post-title" placeholder="Post title or caption">
+            </div></div>
+            <div class="form-row">
+                <div class="form-group"><label>Platform</label>
+                    <select id="new-post-platform"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="youtube">YouTube</option><option value="threads">Threads</option></select>
+                </div>
+                <div class="form-group"><label>Type</label>
+                    <select id="new-post-type"><option value="reel">Reel</option><option value="carousel">Carousel</option><option value="video">Video</option><option value="short">Short</option><option value="story">Story</option><option value="post">Post</option></select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Date</label><input type="date" id="new-post-date" value="${new Date().toISOString().split('T')[0]}"></div>
+                <div class="form-group"><label>Time Posted</label><input type="time" id="new-post-time" value="12:00"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Views</label><input type="number" id="new-post-views" value="0"></div>
+                <div class="form-group"><label>Likes</label><input type="number" id="new-post-likes" value="0"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Comments</label><input type="number" id="new-post-comments" value="0"></div>
+                <div class="form-group"><label>Shares</label><input type="number" id="new-post-shares" value="0"></div>
+                <div class="form-group"><label>Saves</label><input type="number" id="new-post-saves" value="0"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>URL</label><input type="url" id="new-post-url" placeholder="https://..."></div>
+                <div class="form-group"><label>Duration</label><input type="text" id="new-post-duration" placeholder="e.g., 8:32"></div>
+            </div>
+            <div class="form-row"><div class="form-group"><label>Caption / Description</label><textarea id="new-post-caption" rows="3" placeholder="Full caption text..."></textarea></div></div>
+            <div class="form-row"><div class="form-group"><label>Thumbnail URL</label><input type="url" id="new-post-thumbnail" placeholder="https://..."></div></div>
+            <div class="form-row"><div class="form-group"><label>Hashtags</label><input type="text" id="new-post-hashtags" placeholder="#finance #entrepreneur"></div></div>
+            <div class="form-row"><div class="form-group"><label>Notes</label><textarea id="new-post-notes" placeholder="Any notes about this post..."></textarea></div></div>
+            <button class="btn btn-primary mt-2" onclick="addPost()">Add Post</button>
+        `;
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    function addPost() {
+        const views = parseInt(document.getElementById('new-post-views').value) || 0;
+        const likes = parseInt(document.getElementById('new-post-likes').value) || 0;
+        const comments = parseInt(document.getElementById('new-post-comments').value) || 0;
+        const shares = parseInt(document.getElementById('new-post-shares').value) || 0;
+        const saves = parseInt(document.getElementById('new-post-saves').value) || 0;
+        const engRate = views > 0 ? ((likes + comments + shares + saves) / views * 100).toFixed(2) : '0.00';
+
+        store.posts.unshift({
+            id: 'p_' + Date.now(),
+            title: document.getElementById('new-post-title').value,
+            platform: document.getElementById('new-post-platform').value,
+            type: document.getElementById('new-post-type').value,
+            date: document.getElementById('new-post-date').value,
+            time: document.getElementById('new-post-time').value,
+            views, likes, comments, shares, saves,
+            engagementRate: engRate,
+            hashtags: document.getElementById('new-post-hashtags').value,
+            notes: document.getElementById('new-post-notes').value,
+            url: document.getElementById('new-post-url').value,
+            caption: document.getElementById('new-post-caption').value,
+            duration: document.getElementById('new-post-duration').value,
+            thumbnailUrl: document.getElementById('new-post-thumbnail').value,
+        });
+        saveStore();
+        closeModalDirect();
+        renderPosts();
+    }
+
+    // ============================================================
+    // COMMENTS PAGE
+    // ============================================================
+    function renderComments() {
+        const comments = store.comments;
+        const positive = comments.filter(c => c.sentiment === 'positive').length;
+        const negative = comments.filter(c => c.sentiment === 'negative').length;
+        const neutral = comments.filter(c => c.sentiment === 'neutral').length;
+        const questions = comments.filter(c => c.sentiment === 'question').length;
+        const replied = comments.filter(c => c.replied).length;
+        const replyRate = comments.length > 0 ? ((replied / comments.length) * 100).toFixed(0) : 0;
+
+        document.getElementById('comments-kpis').innerHTML = `
+            <div class="kpi-card"><div class="kpi-label">Total Comments</div><div class="kpi-value">${comments.length}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Positive</div><div class="kpi-value" style="color:var(--green)">${positive}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Questions</div><div class="kpi-value" style="color:var(--blue)">${questions}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Reply Rate</div><div class="kpi-value">${replyRate}%</div></div>
+        `;
+
+        // Sentiment chart
+        destroyChart('sentiment');
+        chartInstances['sentiment'] = new Chart(document.getElementById('chart-sentiment'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Positive', 'Neutral', 'Questions', 'Negative'],
+                datasets: [{ data: [positive, neutral, questions, negative], backgroundColor: ['#00cec9CC', '#fdcb6eCC', '#74b9ffCC', '#ff6b6bCC'], borderColor: '#1a1a2e', borderWidth: 3 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '60%',
+                plugins: { legend: { position: 'right', labels: { color: '#a0a0c0', usePointStyle: true } } }
+            }
+        });
+
+        // Comment volume
+        destroyChart('comment-volume');
+        const volByDate = {};
+        comments.forEach(c => { volByDate[c.date] = (volByDate[c.date] || 0) + 1; });
+        const volDates = Object.keys(volByDate).sort();
+        chartInstances['comment-volume'] = new Chart(document.getElementById('chart-comment-volume'), {
+            type: 'bar',
+            data: {
+                labels: volDates,
+                datasets: [{ label: 'Comments', data: volDates.map(d => volByDate[d]), backgroundColor: COLORS[0] + '80', borderRadius: 4 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#6a6a8a' } },
+                    y: { grid: { color: '#2a2a4a' }, ticks: { color: '#6a6a8a' }, beginAtZero: true }
+                }
+            }
+        });
+
+        // Keywords
+        const words = {};
+        comments.forEach(c => {
+            c.text.toLowerCase().split(/\s+/).forEach(w => {
+                w = w.replace(/[^a-z]/g, '');
+                if (w.length > 3 && !['this','that','what','with','just','have','your','from','they','been','here','will','than','them','about'].includes(w)) {
+                    words[w] = (words[w] || 0) + 1;
+                }
+            });
+        });
+        const topWords = Object.entries(words).sort((a, b) => b[1] - a[1]).slice(0, 20);
+        const maxFreq = topWords.length > 0 ? topWords[0][1] : 1;
+        document.getElementById('keyword-cloud').innerHTML = topWords.map(([word, count]) => {
+            const size = 14 + (count / maxFreq) * 24;
+            const opacity = 0.5 + (count / maxFreq) * 0.5;
+            return `<span style="display:inline-block;padding:4px 10px;margin:4px;font-size:${size}px;color:rgba(162,155,254,${opacity});background:rgba(108,92,231,0.1);border-radius:6px;">${word} <small style="font-size:11px;opacity:0.6">${count}</small></span>`;
+        }).join('');
+
+        filterComments();
+    }
+
+    function filterComments() {
+        const sentiment = document.getElementById('filter-comment-sentiment').value;
+        let filtered = [...store.comments];
+        if (sentiment !== 'all') filtered = filtered.filter(c => c.sentiment === sentiment);
+
+        let html = `<table class="data-table"><thead><tr>
+            <th>User</th><th>Comment</th><th>Platform</th><th>Sentiment</th><th>Date</th><th>Replied</th>
+        </tr></thead><tbody>`;
+        filtered.forEach(c => {
+            const sentColors = { positive: 'tag-low', negative: 'tag-high', neutral: 'tag-med', question: '' };
+            html += `<tr>
+                <td>${c.username}</td>
+                <td style="max-width:350px;">${c.text}</td>
+                <td>${platformBadge(c.platform)}</td>
+                <td><span class="tag ${sentColors[c.sentiment] || ''}">${c.sentiment}</span></td>
+                <td>${c.date}</td>
+                <td>${c.replied ? '<span style="color:var(--green)">Yes</span>' : '<span style="color:var(--text-muted)">No</span>'}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById('comments-table').innerHTML = html;
+    }
+
+    function showAddCommentsModal() {
+        document.getElementById('modal-body').innerHTML = `
+            <h2>Import Comments</h2>
+            <p class="text-sm text-muted mb-2">Paste comments (one per line) or CSV format: username, comment text, platform, sentiment</p>
+            <div class="form-group mb-2"><label>Platform</label>
+                <select id="import-comment-platform"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="youtube">YouTube</option><option value="threads">Threads</option></select>
+            </div>
+            <div class="form-group mb-2"><label>Post ID (optional)</label><input type="text" id="import-comment-postid" placeholder="e.g., p_1"></div>
+            <div class="form-group mb-2"><label>Comments (one per line)</label><textarea id="import-comment-text" rows="10" placeholder="Great video!\nHow do I start investing?\nThis helped me so much"></textarea></div>
+            <button class="btn btn-primary" onclick="importComments()">Import</button>
+        `;
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    function importComments() {
+        const platform = document.getElementById('import-comment-platform').value;
+        const postId = document.getElementById('import-comment-postid').value || 'p_0';
+        const text = document.getElementById('import-comment-text').value;
+        const lines = text.split('\n').filter(l => l.trim());
+
+        lines.forEach((line, i) => {
+            const sentiment = analyzeSentiment(line);
+            store.comments.push({
+                id: 'c_' + Date.now() + '_' + i,
+                postId,
+                platform,
+                username: '@imported_user',
+                text: line.trim(),
+                sentiment,
+                likes: 0,
+                date: new Date().toISOString().split('T')[0],
+                replied: false
+            });
+        });
+        saveStore();
+        closeModalDirect();
+        renderComments();
+    }
+
+    function analyzeSentiment(text) {
+        const lower = text.toLowerCase();
+        const posWords = ['love', 'great', 'amazing', 'thank', 'awesome', 'best', 'helped', 'perfect', 'excellent', 'fantastic', 'changed', 'subscribed', 'sharing'];
+        const negWords = ['hate', 'bad', 'worst', 'disagree', 'waste', 'mid', 'terrible', 'scam', 'not practical', 'wrong'];
+        const qWords = ['how', 'what', 'when', 'where', 'why', 'can you', 'do you', '?'];
+
+        if (qWords.some(w => lower.includes(w))) return 'question';
+        if (posWords.some(w => lower.includes(w))) return 'positive';
+        if (negWords.some(w => lower.includes(w))) return 'negative';
+        return 'neutral';
+    }
+
+    // ============================================================
+    // CREATOR RESEARCH PAGE
+    // ============================================================
+    function renderCreators() {
+        const container = document.getElementById('watched-creators');
+        if (store.creators.length === 0) {
+            container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>No creators tracked yet</h3><p>Use the form above to analyze and watch creators in your niche.</p></div>`;
+            return;
+        }
+
+        container.innerHTML = store.creators.map(c => `
+            <div class="creator-card">
+                <div class="creator-avatar" style="background:${PLATFORM_COLORS[c.platform]}40;color:${PLATFORM_COLORS[c.platform]}">${c.handle.charAt(1).toUpperCase()}</div>
+                <div class="creator-info">
+                    <h4>${c.handle} ${platformBadge(c.platform)}</h4>
+                    <p>${c.niche} · Added ${c.dateAdded}</p>
+                    <p class="mt-1 text-sm">${c.notes || ''}</p>
+                </div>
+                <div class="creator-stats">
+                    <div><div class="creator-stat-value">${fmt(c.followers)}</div><div class="creator-stat-label">Followers</div></div>
+                    <div><div class="creator-stat-value">${c.avgEngagement}%</div><div class="creator-stat-label">Avg Eng</div></div>
+                    <div><div class="creator-stat-value">${fmt(c.avgViews)}</div><div class="creator-stat-label">Avg Views</div></div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function analyzeCreator() {
+        const handle = document.getElementById('creator-handle').value.trim();
+        const platform = document.getElementById('creator-platform').value;
+        const niche = document.getElementById('creator-niche').value;
+
+        if (!handle) return alert('Please enter a handle');
+
+        // Manual entry — no fake data, user fills in real numbers they research
+        document.getElementById('creator-results').innerHTML = `
+            <div class="post-entry-card">
+                <h3>Add Creator: ${handle}</h3>
+                <p style="color:#a0a0c0;margin-bottom:12px;">Enter the real metrics you've researched for this creator.</p>
+                <div class="form-row">
+                    <div class="form-group"><label>Followers</label><input type="number" id="cr-followers" placeholder="e.g. 50000"></div>
+                    <div class="form-group"><label>Avg Engagement %</label><input type="number" step="0.01" id="cr-engagement" placeholder="e.g. 4.5"></div>
+                    <div class="form-group"><label>Avg Views</label><input type="number" id="cr-views" placeholder="e.g. 25000"></div>
+                    <div class="form-group"><label>Post Frequency</label><input type="text" id="cr-frequency" placeholder="e.g. 5 posts/week"></div>
+                </div>
+                <div class="form-row mt-2">
+                    <div class="form-group"><label>Notes</label><textarea id="creator-notes" placeholder="What you noticed about their content strategy..."></textarea></div>
+                </div>
+                <button class="btn btn-primary mt-1" onclick="saveCreatorManual('${handle.replace(/'/g, "\\'")}', '${platform}', '${niche}')">Add to Watch List</button>
+            </div>
+        `;
+    }
+
+    function saveCreatorManual(handle, platform, niche) {
+        const creator = {
+            handle,
+            platform,
+            niche,
+            followers: parseInt(document.getElementById('cr-followers')?.value) || 0,
+            avgEngagement: parseFloat(document.getElementById('cr-engagement')?.value) || 0,
+            avgViews: parseInt(document.getElementById('cr-views')?.value) || 0,
+            postFrequency: document.getElementById('cr-frequency')?.value || '',
+            topContentTypes: [],
+            dateAdded: new Date().toISOString().split('T')[0],
+            notes: document.getElementById('creator-notes')?.value || '',
+        };
+        store.creators.push(creator);
+        saveStore();
+        document.getElementById('creator-results').innerHTML = '<p style="color:var(--green);padding:12px;">Creator added to watch list!</p>';
+        renderCreators();
+    }
+
+    // ============================================================
+    // THUMBNAIL CREATOR
+    // ============================================================
+    let selectedThumb = null;
+
+    function generateThumbnails() {
+        const title = document.getElementById('thumb-title').value || 'Your Title Here';
+        const subtitle = document.getElementById('thumb-subtitle').value;
+        const style = document.getElementById('thumb-style').value;
+        const color = document.getElementById('thumb-color').value;
+        const platform = document.getElementById('thumb-platform').value;
+
+        const container = document.getElementById('thumbnail-results');
+        container.innerHTML = '';
+
+        const aspects = { youtube: { w: 1280, h: 720 }, instagram: { w: 1080, h: 1080 }, tiktok: { w: 1080, h: 1920 } };
+        const { w, h } = aspects[platform];
+
+        for (let i = 0; i < 4; i++) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'thumbnail-preview';
+            wrapper.onclick = () => selectThumbnail(i);
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.id = 'thumb-canvas-' + i;
+            wrapper.appendChild(canvas);
+            container.appendChild(wrapper);
+
+            const ctx = canvas.getContext('2d');
+            drawThumbnail(ctx, w, h, title, subtitle, color, style, i);
+        }
+
+        document.getElementById('thumb-download-area').style.display = 'block';
+    }
+
+    function drawThumbnail(ctx, w, h, title, subtitle, accentColor, style, variation) {
+        // Background variations
+        const bgVariations = [
+            () => { // Solid dark with accent border
+                ctx.fillStyle = '#0f0f1a';
+                ctx.fillRect(0, 0, w, h);
+                ctx.strokeStyle = accentColor;
+                ctx.lineWidth = 8;
+                ctx.strokeRect(20, 20, w - 40, h - 40);
+            },
+            () => { // Gradient
+                const grad = ctx.createLinearGradient(0, 0, w, h);
+                grad.addColorStop(0, '#1a1a2e');
+                grad.addColorStop(1, accentColor + '44');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, w, h);
+            },
+            () => { // Split
+                ctx.fillStyle = '#0f0f1a';
+                ctx.fillRect(0, 0, w, h);
+                ctx.fillStyle = accentColor + '33';
+                ctx.fillRect(0, 0, w * 0.6, h);
+            },
+            () => { // Circles pattern
+                ctx.fillStyle = '#0f0f1a';
+                ctx.fillRect(0, 0, w, h);
+                for (let i = 0; i < 5; i++) {
+                    ctx.beginPath();
+                    ctx.arc(w * 0.7, h * 0.5, 100 + i * 80, 0, Math.PI * 2);
+                    ctx.strokeStyle = accentColor + (20 + i * 10).toString(16);
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            }
+        ];
+
+        bgVariations[variation]();
+
+        // Accent shape
+        ctx.fillStyle = accentColor;
+        if (variation === 0) {
+            ctx.fillRect(40, h * 0.4, 8, h * 0.3);
+        } else if (variation === 1) {
+            ctx.beginPath();
+            ctx.arc(w * 0.85, h * 0.2, 60, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Title text
+        const fontSize = Math.min(w * 0.06, 72);
+        ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = variation === 2 ? 'left' : 'center';
+
+        const maxWidth = w * 0.8;
+        const x = variation === 2 ? w * 0.08 : w * 0.5;
+        const words = title.split(' ');
+        let lines = [];
+        let currentLine = '';
+
+        words.forEach(word => {
+            const testLine = currentLine ? currentLine + ' ' + word : word;
+            if (ctx.measureText(testLine).width > maxWidth) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        });
+        if (currentLine) lines.push(currentLine);
+
+        const lineHeight = fontSize * 1.2;
+        const startY = h * 0.5 - (lines.length * lineHeight) / 2;
+
+        lines.forEach((line, i) => {
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillText(line, x + 2, startY + i * lineHeight + 2);
+            // Text
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(line, x, startY + i * lineHeight);
+        });
+
+        // Subtitle
+        if (subtitle) {
+            ctx.font = `600 ${fontSize * 0.45}px -apple-system, sans-serif`;
+            ctx.fillStyle = accentColor;
+            ctx.fillText(subtitle, x, startY + lines.length * lineHeight + 20);
+        }
+
+        // Brand
+        ctx.font = `700 ${fontSize * 0.35}px -apple-system, sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.textAlign = 'right';
+        ctx.fillText('FINANCE WITH PHIL', w - 40, h - 30);
+    }
+
+    function selectThumbnail(idx) {
+        document.querySelectorAll('.thumbnail-preview').forEach((el, i) => {
+            el.classList.toggle('thumbnail-selected', i === idx);
+        });
+        selectedThumb = idx;
+    }
+
+    function downloadThumbnail() {
+        if (selectedThumb === null) { alert('Please select a thumbnail first'); return; }
+        const canvas = document.getElementById('thumb-canvas-' + selectedThumb);
+        const link = document.createElement('a');
+        link.download = 'thumbnail_' + new Date().toISOString().split('T')[0] + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+
+    // ============================================================
+    // CONTENT CALENDAR
+    // ============================================================
+    let calendarDate = new Date();
+
+    function renderCalendar() {
+        const year = calendarDate.getFullYear();
+        const month = calendarDate.getMonth();
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+        document.getElementById('calendar-month-label').textContent = monthNames[month] + ' ' + year;
+
+        const grid = document.getElementById('calendar-grid');
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        let html = dayNames.map(d => `<div class="calendar-header">${d}</div>`).join('');
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const today = new Date().toISOString().split('T')[0];
+
+        for (let i = 0; i < firstDay; i++) html += '<div></div>';
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const isToday = dateStr === today;
+            const events = store.calendar.filter(e => e.date === dateStr);
+            const dayPosts = store.posts.filter(p => p.date === dateStr);
+            const postDots = dayPosts.length > 0 ? `<div style="display:flex;gap:2px;flex-wrap:wrap;margin-top:2px">${dayPosts.slice(0,6).map(p => `<div style="width:6px;height:6px;border-radius:50%;background:${PLATFORM_COLORS[p.platform]||'#666'}" title="${p.platform}: ${(p.title||'').substring(0,40)}"></div>`).join('')}${dayPosts.length > 6 ? `<span style="font-size:9px;color:#6a6a8a">+${dayPosts.length-6}</span>` : ''}</div>` : '';
+            html += `<div class="calendar-day ${isToday ? 'today' : ''}" onclick="showDayDetail('${dateStr}')">
+                <div class="day-number">${d}${dayPosts.length > 0 ? `<span style="font-size:9px;color:#a78bfa;margin-left:4px">${dayPosts.length}p</span>` : ''}</div>
+                ${events.map(e => `<div class="calendar-event ${e.platform.substring(0, 2)}">${e.title.substring(0, 18)}</div>`).join('')}
+                ${postDots}
+            </div>`;
+        }
+        grid.innerHTML = html;
+
+        // Upcoming content
+        const upcoming = [...store.calendar].filter(e => e.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 10);
+        let thtml = `<table class="data-table"><thead><tr><th>Date</th><th>Time</th><th>Content</th><th>Platform</th><th>Status</th></tr></thead><tbody>`;
+        upcoming.forEach(e => {
+            thtml += `<tr><td>${e.date}</td><td>${e.time}</td><td>${e.title}</td><td>${platformBadge(e.platform)}</td><td><span class="tag ${e.status === 'planned' ? 'tag-med' : 'tag-low'}">${e.status}</span></td></tr>`;
+        });
+        thtml += '</tbody></table>';
+        document.getElementById('upcoming-content').innerHTML = upcoming.length ? thtml : '<p class="text-muted text-sm">No upcoming content planned.</p>';
+    }
+
+    function calendarNav(dir) {
+        calendarDate.setMonth(calendarDate.getMonth() + dir);
+        renderCalendar();
+    }
+
+    function showDayDetail(dateStr) {
+        const events = store.calendar.filter(e => e.date === dateStr);
+        const dayPosts = store.posts.filter(p => p.date === dateStr);
+        document.getElementById('modal-body').innerHTML = `
+            <h2>Content for ${dateStr}</h2>
+            ${dayPosts.length ? `<h3 style="color:#a78bfa;margin-bottom:8px">Published (${dayPosts.length})</h3>` + dayPosts.map(p => `<div class="flow-step mb-1" style="cursor:pointer" onclick="showPostDetail('${p.id}')"><div class="flow-step-content"><div class="step-type">${platformBadge(p.platform)} ${p.time || ''} · ${fmt(p.views)} views · ${fmt(p.likes)} likes</div><div class="step-text">${p.title || p.caption?.substring(0,80) || 'Untitled'}</div></div></div>`).join('') : ''}
+            ${events.length ? `<h3 style="color:#22d3ee;margin-bottom:8px">Planned</h3>` + events.map(e => `<div class="flow-step mb-1"><div class="flow-step-content"><div class="step-type">${e.platform} · ${e.time}</div><div class="step-text">${e.title}</div></div></div>`).join('') : ''}
+            ${!dayPosts.length && !events.length ? '<p class="text-muted">No content</p>' : ''}
+            <hr style="border-color:var(--border);margin:16px 0;">
+            <h3 class="mb-1">Add Content</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Title</label><input type="text" id="event-title" placeholder="Content title"></div>
+                <div class="form-group"><label>Platform</label>
+                    <select id="event-platform"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="youtube">YouTube</option><option value="threads">Threads</option></select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Time</label><input type="time" id="event-time" value="12:00"></div>
+                <div class="form-group"><label>Status</label>
+                    <select id="event-status"><option value="planned">Planned</option><option value="drafted">Drafted</option><option value="ready">Ready</option></select>
+                </div>
+            </div>
+            <button class="btn btn-primary mt-1" onclick="addCalendarEvent('${dateStr}')">Add to Calendar</button>
+        `;
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    function showAddEventModal() {
+        showDayDetail(new Date().toISOString().split('T')[0]);
+    }
+
+    function addCalendarEvent(dateStr) {
+        store.calendar.push({
+            id: 'ev_' + Date.now(),
+            title: document.getElementById('event-title').value,
+            platform: document.getElementById('event-platform').value,
+            date: dateStr,
+            time: document.getElementById('event-time').value,
+            status: document.getElementById('event-status').value,
+            notes: ''
+        });
+        saveStore();
+        closeModalDirect();
+        renderCalendar();
+    }
+
+    // ============================================================
+    // DEEP INSIGHTS
+    // ============================================================
+    let analyticsData = null;
+
+    async function loadAnalytics() {
+        try {
+            const resp = await fetch('./data/analytics.json');
+            analyticsData = await resp.json();
+        } catch(e) { console.warn('Analytics data not available:', e); }
+    }
+
+    function renderInsights() {
+        if (!analyticsData) return;
+        const a = analyticsData;
+        const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+        // === POSTING HEATMAP ===
+        const hm = a.postingHeatmap;
+        let hmHtml = '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr><th style="padding:4px;color:#6a6a8a">Day</th>';
+        for (let h = 0; h < 24; h++) hmHtml += `<th style="padding:2px;color:#6a6a8a;text-align:center">${h}</th>`;
+        hmHtml += '</tr></thead><tbody>';
+        const maxViews = Math.max(...hm.flat().map(c => c.avgViews));
+        for (let d = 0; d < 7; d++) {
+            hmHtml += `<tr><td style="padding:4px;color:#a0a0c0;font-weight:600">${DAYS[d]}</td>`;
+            for (let h = 0; h < 24; h++) {
+                const cell = hm[d][h];
+                const intensity = maxViews > 0 ? cell.avgViews / maxViews : 0;
+                const r = Math.round(80 + intensity * 100);
+                const g = Math.round(40 + intensity * 80);
+                const b = Math.round(200 + intensity * 55);
+                const alpha = 0.15 + intensity * 0.85;
+                const bg = cell.count > 0 ? `rgba(${r},${g},${b},${alpha})` : 'rgba(30,30,60,0.3)';
+                const title = `${DAYS[d]} ${h}:00 — ${cell.count} posts, ${cell.avgViews.toLocaleString()} avg views, ${cell.avgEngagement}% eng`;
+                hmHtml += `<td style="padding:4px;text-align:center;background:${bg};color:#fff;border-radius:3px;cursor:default;min-width:28px" title="${title}">${cell.count || ''}</td>`;
+            }
+            hmHtml += '</tr>';
+        }
+        hmHtml += '</tbody></table>';
+        // Best times summary
+        const bt = a.bestPostingTimes.slice(0, 5);
+        hmHtml += '<div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap">';
+        bt.forEach(t => {
+            hmHtml += `<div style="background:rgba(100,80,220,0.2);border:1px solid rgba(100,80,220,0.4);border-radius:8px;padding:8px 14px">
+                <div style="color:#a78bfa;font-weight:700">${DAYS[t.day]} ${t.hour}:00</div>
+                <div style="color:#6a6a8a;font-size:12px">${t.avgViews.toLocaleString()} avg views · ${t.count} posts</div>
+            </div>`;
+        });
+        hmHtml += '</div>';
+        document.getElementById('posting-heatmap').innerHTML = hmHtml;
+
+        // === CONTENT CATEGORIES CHART ===
+        const cats = a.contentCategories;
+        const catNames = Object.keys(cats).sort((a,b) => cats[b].avgViews - cats[a].avgViews);
+        destroyChart('chart-categories');
+        chartInstances['chart-categories'] = new Chart(document.getElementById('chart-categories'), {
+            type: 'bar',
+            data: {
+                labels: catNames.map(c => c.replace('_',' ')),
+                datasets: [{
+                    label: 'Avg Views',
+                    data: catNames.map(c => cats[c].avgViews),
+                    backgroundColor: 'rgba(168,85,247,0.6)',
+                    borderRadius: 4,
+                    yAxisID: 'y'
+                },{
+                    label: 'Avg Engagement %',
+                    data: catNames.map(c => cats[c].avgEngagement),
+                    backgroundColor: 'rgba(34,211,238,0.6)',
+                    borderRadius: 4,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#a0a0c0' } } },
+                scales: {
+                    x: { ticks: { color: '#6a6a8a' }, grid: { color: '#2a2a4a' } },
+                    y: { position: 'left', ticks: { color: '#a78bfa' }, grid: { color: '#2a2a4a' }, title: { display: true, text: 'Avg Views', color: '#a78bfa' } },
+                    y1: { position: 'right', ticks: { color: '#22d3ee' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Avg Eng %', color: '#22d3ee' } }
+                }
+            }
+        });
+
+        // === ENGAGEMENT FUNNEL CHART ===
+        const fn = a.engagementFunnel;
+        const fnPlatforms = ['instagram','tiktok','youtube','threads'];
+        destroyChart('chart-funnel');
+        chartInstances['chart-funnel'] = new Chart(document.getElementById('chart-funnel'), {
+            type: 'bar',
+            data: {
+                labels: fnPlatforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)),
+                datasets: [
+                    { label: 'Like Rate %', data: fnPlatforms.map(p => fn[p]?.likeRate || 0), backgroundColor: 'rgba(244,63,94,0.7)', borderRadius: 4 },
+                    { label: 'Comment Rate %', data: fnPlatforms.map(p => fn[p]?.commentRate || 0), backgroundColor: 'rgba(34,211,238,0.7)', borderRadius: 4 },
+                    { label: 'Share Rate %', data: fnPlatforms.map(p => fn[p]?.shareRate || 0), backgroundColor: 'rgba(168,85,247,0.7)', borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#a0a0c0' } } },
+                scales: {
+                    x: { ticks: { color: '#6a6a8a' }, grid: { color: '#2a2a4a' } },
+                    y: { ticks: { color: '#6a6a8a' }, grid: { color: '#2a2a4a' }, title: { display: true, text: 'Rate %', color: '#6a6a8a' } }
+                }
+            }
+        });
+
+        // === VIRAL POSTS LIST ===
+        let vpHtml = '';
+        a.viralPosts.slice(0, 20).forEach((v, i) => {
+            const scoreColor = v.viralityScore >= 10 ? '#f43f5e' : v.viralityScore >= 5 ? '#f59e0b' : '#22d3ee';
+            vpHtml += `<div style="display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid #2a2a4a">
+                <div style="min-width:36px;height:36px;border-radius:50%;background:${scoreColor};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff">${v.viralityScore.toFixed(0)}x</div>
+                <div style="flex:1;min-width:0">
+                    <div style="color:#e0e0ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${v.title || 'Untitled'}</div>
+                    <div style="color:#6a6a8a;font-size:12px">${v.platform} · ${v.date} · ${v.categories?.join(', ') || ''}</div>
+                </div>
+                <div style="text-align:right;min-width:80px">
+                    <div style="color:#a78bfa;font-weight:600">${v.views >= 1000000 ? (v.views/1000000).toFixed(1)+'M' : v.views >= 1000 ? (v.views/1000).toFixed(1)+'K' : v.views}</div>
+                    <div style="color:#6a6a8a;font-size:12px">${v.engagementRate}% eng</div>
+                </div>
+            </div>`;
+        });
+        document.getElementById('viral-posts-list').innerHTML = vpHtml || '<p style="color:#6a6a8a">No viral posts detected</p>';
+
+        // === GROWTH VELOCITY CHART ===
+        const gv = a.growthVelocity.slice(-24); // Last 24 months
+        destroyChart('chart-growth');
+        chartInstances['chart-growth'] = new Chart(document.getElementById('chart-growth'), {
+            type: 'line',
+            data: {
+                labels: gv.map(m => m.month),
+                datasets: [{
+                    label: 'Posts',
+                    data: gv.map(m => m.posts),
+                    borderColor: '#a78bfa',
+                    backgroundColor: 'rgba(167,139,250,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    yAxisID: 'y'
+                },{
+                    label: 'Views',
+                    data: gv.map(m => m.views),
+                    borderColor: '#22d3ee',
+                    backgroundColor: 'rgba(34,211,238,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#a0a0c0' } } },
+                scales: {
+                    x: { ticks: { color: '#6a6a8a', maxRotation: 45 }, grid: { color: '#2a2a4a' } },
+                    y: { position: 'left', ticks: { color: '#a78bfa' }, grid: { color: '#2a2a4a' }, title: { display: true, text: 'Posts', color: '#a78bfa' } },
+                    y1: { position: 'right', ticks: { color: '#22d3ee' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Views', color: '#22d3ee' } }
+                }
+            }
+        });
+
+        // === HASHTAG PERFORMANCE TABLE ===
+        let htHtml = '<table class="data-table"><thead><tr><th>Hashtag</th><th>Uses</th><th>Avg Views</th><th>Avg Likes</th><th>Avg Eng %</th><th>Performance</th></tr></thead><tbody>';
+        a.hashtagPerformance.slice(0, 25).forEach(h => {
+            const bar = Math.min(h.avgViews / (a.hashtagPerformance[0]?.avgViews || 1) * 100, 100);
+            htHtml += `<tr>
+                <td><span style="color:#a78bfa;font-weight:600">${h.tag}</span></td>
+                <td>${h.count}</td>
+                <td>${h.avgViews.toLocaleString()}</td>
+                <td>${h.avgLikes.toLocaleString()}</td>
+                <td>${h.avgEngagement}%</td>
+                <td><div style="background:rgba(167,139,250,0.2);border-radius:4px;height:8px;width:100%"><div style="background:#a78bfa;border-radius:4px;height:8px;width:${bar}%"></div></div></td>
+            </tr>`;
+        });
+        htHtml += '</tbody></table>';
+        document.getElementById('hashtag-perf-table').innerHTML = htHtml;
+
+        // === CROSS-POST TABLE ===
+        let cpHtml = '<table class="data-table"><thead><tr><th>Content</th><th>Platforms</th><th>Best Platform</th><th>View Difference</th></tr></thead><tbody>';
+        a.crossPosts.slice(0, 20).forEach(cp => {
+            cpHtml += `<tr>
+                <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cp.title}</td>
+                <td>${cp.platforms.map(p => `<span class="platform-badge platform-${p}">${p.substring(0,2).toUpperCase()}</span>`).join(' ')}</td>
+                <td><span class="platform-badge platform-${cp.bestPlatform}">${cp.bestPlatform}</span></td>
+                <td style="color:#22d3ee;font-weight:600">${cp.viewDiff.toLocaleString()}</td>
+            </tr>`;
+        });
+        cpHtml += '</tbody></table>';
+        document.getElementById('cross-post-table').innerHTML = cpHtml;
+
+        // === TOP COMMENTERS / SUPERFANS ===
+        let tcHtml = '';
+        a.topCommenters.slice(0, 20).forEach((tc, i) => {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+            tcHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid #2a2a4a">
+                <div style="min-width:28px;text-align:center;font-size:${medal ? '18px' : '12px'};color:#6a6a8a">${medal || (i+1)}</div>
+                <div style="flex:1">
+                    <div style="color:#e0e0ff;font-weight:600">${tc.username}</div>
+                    <div style="color:#6a6a8a;font-size:12px">${tc.platforms.join(', ')}</div>
+                </div>
+                <div style="color:#a78bfa;font-weight:700">${tc.count} comments</div>
+            </div>`;
+        });
+        document.getElementById('top-commenters-list').innerHTML = tcHtml;
+
+        // === AUDIENCE OVERLAP ===
+        const ao = a.audienceOverlap;
+        let aoHtml = `<div style="padding:12px;margin-bottom:12px;background:rgba(100,80,220,0.15);border-radius:8px">
+            <div style="color:#a78bfa;font-size:24px;font-weight:700">${ao.totalUniqueUsers.toLocaleString()}</div>
+            <div style="color:#6a6a8a">Unique commenters</div>
+            <div style="margin-top:8px;color:#6a6a8a;font-size:13px">
+                IG: ${ao.platformBreakdown?.instagram || 0} · TT: ${ao.platformBreakdown?.tiktok || 0} · YT: ${ao.platformBreakdown?.youtube || 0} · TH: ${ao.platformBreakdown?.threads || 0}
+            </div>
+        </div>
+        <div style="color:#e0e0ff;font-weight:600;margin-bottom:8px">${ao.crossPlatformUsers?.length || 0} users on multiple platforms</div>`;
+        (ao.crossPlatformUsers || []).forEach(u => {
+            aoHtml += `<div style="display:flex;align-items:center;gap:10px;padding:6px;border-bottom:1px solid #2a2a4a">
+                <div style="color:#e0e0ff;flex:1">${u.username}</div>
+                <div style="color:#6a6a8a;font-size:12px">${u.platforms.join(' + ')}</div>
+                <div style="color:#22d3ee;font-size:12px">${u.commentCount} comments</div>
+            </div>`;
+        });
+        document.getElementById('audience-overlap-list').innerHTML = aoHtml;
+
+        // === HOOK TYPE A/B ANALYSIS ===
+        const ht = a.hookTypes;
+        if (ht && ht.length > 0) {
+            const htColors = ['#a78bfa','#22d3ee','#f43f5e','#f59e0b','#22c55e','#3b82f6','#ec4899','#6b7280'];
+
+            // Bar chart — avg views by hook type
+            destroyChart('chart-hook-types');
+            chartInstances['chart-hook-types'] = new Chart(document.getElementById('chart-hook-types'), {
+                type: 'bar',
+                data: {
+                    labels: ht.map(h => h.type.charAt(0).toUpperCase() + h.type.slice(1)),
+                    datasets: [{
+                        label: 'Avg Views',
+                        data: ht.map(h => h.avgViews),
+                        backgroundColor: ht.map((_, i) => htColors[i % htColors.length] + 'AA'),
+                        borderColor: ht.map((_, i) => htColors[i % htColors.length]),
+                        borderWidth: 1, borderRadius: 6,
+                        yAxisID: 'y'
+                    },{
+                        label: 'Avg Engagement %',
+                        data: ht.map(h => h.avgEngagement),
+                        backgroundColor: 'rgba(34,211,238,0.5)',
+                        borderColor: '#22d3ee', borderWidth: 1, borderRadius: 6,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#a0a0c0' } } },
+                    scales: {
+                        x: { ticks: { color: '#6a6a8a' }, grid: { color: '#2a2a4a' } },
+                        y: { position: 'left', ticks: { color: '#a78bfa' }, grid: { color: '#2a2a4a' }, title: { display: true, text: 'Avg Views', color: '#a78bfa' } },
+                        y1: { position: 'right', ticks: { color: '#22d3ee' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Avg Eng %', color: '#22d3ee' } }
+                    }
+                }
+            });
+
+            // Doughnut — distribution
+            destroyChart('chart-hook-dist');
+            chartInstances['chart-hook-dist'] = new Chart(document.getElementById('chart-hook-dist'), {
+                type: 'doughnut',
+                data: {
+                    labels: ht.map(h => h.type.charAt(0).toUpperCase() + h.type.slice(1)),
+                    datasets: [{
+                        data: ht.map(h => h.count),
+                        backgroundColor: ht.map((_, i) => htColors[i % htColors.length] + 'CC'),
+                        borderColor: '#1a1a2e', borderWidth: 3,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '55%',
+                    plugins: { legend: { position: 'right', labels: { color: '#a0a0c0', usePointStyle: true, padding: 10 } } }
+                }
+            });
+
+            // Table with details
+            let htTableHtml = '<table class="data-table"><thead><tr><th>Hook Type</th><th>Posts</th><th>Avg Views</th><th>Avg Likes</th><th>Avg Eng %</th><th>Total Views</th><th>Top Performing Post</th></tr></thead><tbody>';
+            ht.forEach((h, i) => {
+                const bar = Math.min(h.avgViews / (ht[0]?.avgViews || 1) * 100, 100);
+                htTableHtml += `<tr>
+                    <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${htColors[i % htColors.length]};margin-right:6px"></span><strong style="color:#e0e0ff">${h.type.charAt(0).toUpperCase() + h.type.slice(1)}</strong></td>
+                    <td>${h.count}</td>
+                    <td style="color:#a78bfa;font-weight:600">${h.avgViews.toLocaleString()}</td>
+                    <td>${h.avgLikes.toLocaleString()}</td>
+                    <td>${h.avgEngagement}%</td>
+                    <td>${fmt(h.totalViews)}</td>
+                    <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6a6a8a">${h.topPost}</td>
+                </tr>`;
+            });
+            htTableHtml += '</tbody></table>';
+            document.getElementById('hook-type-table').innerHTML = htTableHtml;
+        }
+
+        // === HOOK LIBRARY ===
+        let hkHtml = '<table class="data-table"><thead><tr><th>Hook / Opening Line</th><th>Platform</th><th>Views</th><th>Eng %</th><th>Category</th></tr></thead><tbody>';
+        a.topHooks.slice(0, 30).forEach(h => {
+            hkHtml += `<tr>
+                <td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e0e0ff">"${h.hook}"</td>
+                <td>${platformBadge(h.platform)}</td>
+                <td style="color:#a78bfa;font-weight:600">${h.views >= 1000000 ? (h.views/1000000).toFixed(1)+'M' : h.views >= 1000 ? (h.views/1000).toFixed(1)+'K' : h.views}</td>
+                <td>${h.engagementRate}%</td>
+                <td style="color:#6a6a8a">${(h.categories || []).slice(0,2).join(', ')}</td>
+            </tr>`;
+        });
+        hkHtml += '</tbody></table>';
+        document.getElementById('hook-library-table').innerHTML = hkHtml;
+
+        // === HIGH-VALUE UNRESPONDED ===
+        let hvHtml = '<table class="data-table"><thead><tr><th>User</th><th>Question</th><th>Platform</th><th>Likes</th><th>Date</th></tr></thead><tbody>';
+        a.highValueComments.slice(0, 25).forEach(c => {
+            hvHtml += `<tr>
+                <td style="color:#22d3ee">${c.username}</td>
+                <td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.text}</td>
+                <td>${platformBadge(c.platform)}</td>
+                <td style="color:#f59e0b;font-weight:600">${c.likes}</td>
+                <td style="color:#6a6a8a">${c.date}</td>
+            </tr>`;
+        });
+        hvHtml += '</tbody></table>';
+        document.getElementById('high-value-comments-table').innerHTML = hvHtml;
+
+        // === DOESN'T FOLLOW BACK ===
+        const fd = a.followData;
+        if (fd) {
+            const summary = fd.summary || {};
+            const igDfb = fd.instagram?.dontFollowBackCount || 0;
+            const ttDfb = fd.tiktok?.dontFollowBackCount || 0;
+            const igMut = fd.instagram?.mutualCount || 0;
+            const ttMut = fd.tiktok?.mutualCount || 0;
+            const igFans = fd.instagram?.fansCount || 0;
+            const ttFans = fd.tiktok?.fansCount || 0;
+
+            // Summary cards
+            let fbSumHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+                <div class="kpi-card"><div class="kpi-label">Don't Follow Back</div><div class="kpi-value" style="color:#f43f5e">${(summary.totalDontFollowBack || 0).toLocaleString()}</div><div class="kpi-change negative">Across platforms</div></div>
+                <div class="kpi-card"><div class="kpi-label">Your Fans</div><div class="kpi-value" style="color:#22c55e">${(summary.totalFans || 0).toLocaleString()}</div><div class="kpi-change positive">Follow you only</div></div>
+                <div class="kpi-card"><div class="kpi-label">Mutual Follows</div><div class="kpi-value" style="color:#a78bfa">${(summary.totalMutual || 0).toLocaleString()}</div><div class="kpi-change positive">Both ways</div></div>
+                <div class="kpi-card"><div class="kpi-label">IG Ratio</div><div class="kpi-value">${fd.instagram?.followers ? (fd.instagram.followers / fd.instagram.following).toFixed(1) : '—'}x</div><div class="kpi-change positive">${fd.instagram?.followers?.toLocaleString() || '?'} / ${fd.instagram?.following?.toLocaleString() || '?'}</div></div>
+                <div class="kpi-card"><div class="kpi-label">TT Ratio</div><div class="kpi-value">${fd.tiktok?.followers ? (fd.tiktok.followers / fd.tiktok.following).toFixed(1) : '—'}x</div><div class="kpi-change positive">${fd.tiktok?.followers?.toLocaleString() || '?'} / ${fd.tiktok?.following?.toLocaleString() || '?'}</div></div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:12px">
+                <div style="flex:1;background:rgba(30,30,60,0.6);border-radius:8px;padding:12px;border-left:4px solid ${PLATFORM_COLORS.instagram}">
+                    <div style="color:#e0e0ff;font-weight:700;margin-bottom:6px">Instagram</div>
+                    <div style="display:flex;gap:16px;font-size:13px">
+                        <span style="color:#f43f5e">${igDfb} don't follow back</span>
+                        <span style="color:#22c55e">${igFans.toLocaleString()} fans</span>
+                        <span style="color:#a78bfa">${igMut.toLocaleString()} mutual</span>
+                    </div>
+                </div>
+                <div style="flex:1;background:rgba(30,30,60,0.6);border-radius:8px;padding:12px;border-left:4px solid ${PLATFORM_COLORS.tiktok}">
+                    <div style="color:#e0e0ff;font-weight:700;margin-bottom:6px">TikTok</div>
+                    <div style="display:flex;gap:16px;font-size:13px">
+                        <span style="color:#f43f5e">${ttDfb} don't follow back</span>
+                        <span style="color:#22c55e">${ttFans.toLocaleString()} fans</span>
+                        <span style="color:#a78bfa">${ttMut.toLocaleString()} mutual</span>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:8px;font-size:11px;color:#6a6a8a">Threads shares IG follow graph. YouTube subscriber lists are private.</div>`;
+            document.getElementById('follow-back-summary').innerHTML = fbSumHtml;
+
+            // Filter buttons
+            window.__fbPlatFilter = window.__fbPlatFilter || 'all';
+            window.__fbSearchTerm = window.__fbSearchTerm || '';
+            document.getElementById('follow-back-filters').innerHTML = `
+                <button class="btn btn-sm ${window.__fbPlatFilter === 'all' ? 'btn-primary' : 'btn-secondary'}" onclick="window.__fbPlatFilter='all';renderFollowBackTable()">All (${igDfb + ttDfb})</button>
+                <button class="btn btn-sm ${window.__fbPlatFilter === 'instagram' ? 'btn-primary' : 'btn-secondary'}" onclick="window.__fbPlatFilter='instagram';renderFollowBackTable()">IG (${igDfb})</button>
+                <button class="btn btn-sm ${window.__fbPlatFilter === 'tiktok' ? 'btn-primary' : 'btn-secondary'}" onclick="window.__fbPlatFilter='tiktok';renderFollowBackTable()">TT (${ttDfb})</button>
+                <input type="text" placeholder="Search username..." style="padding:6px 12px;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:6px;color:#e0e0ff;font-size:13px;width:200px" oninput="window.__fbSearchTerm=this.value.toLowerCase();renderFollowBackTable()" value="${window.__fbSearchTerm}">
+            `;
+
+            renderFollowBackTable();
+        }
+    }
+
+    function renderFollowBackTable() {
+        const fd = analyticsData?.followData;
+        if (!fd) return;
+        const filter = window.__fbPlatFilter || 'all';
+        const search = window.__fbSearchTerm || '';
+
+        // Combine lists with platform tag
+        let allDfb = [];
+        if (filter === 'all' || filter === 'instagram') {
+            allDfb = allDfb.concat((fd.instagram?.dontFollowBack || []).map(u => ({...u, platform: 'instagram'})));
+        }
+        if (filter === 'all' || filter === 'tiktok') {
+            allDfb = allDfb.concat((fd.tiktok?.dontFollowBack || []).map(u => ({...u, platform: 'tiktok'})));
+        }
+
+        // Search filter
+        if (search) {
+            allDfb = allDfb.filter(u => u.username.toLowerCase().includes(search) || (u.fullName || '').toLowerCase().includes(search));
+        }
+
+        const pageSize = 50;
+        const showing = allDfb.slice(0, pageSize);
+
+        let tHtml = `<div style="color:#6a6a8a;font-size:12px;margin-bottom:8px">Showing ${showing.length} of ${allDfb.length}</div>`;
+        tHtml += '<table class="data-table"><thead><tr><th>Username</th><th>Name</th><th>Platform</th><th>Verified</th><th>Profile</th></tr></thead><tbody>';
+        showing.forEach(u => {
+            const profileUrl = u.platform === 'instagram'
+                ? `https://instagram.com/${u.username}`
+                : `https://tiktok.com/@${u.username}`;
+            tHtml += `<tr>
+                <td style="color:#22d3ee;font-weight:600">@${u.username}</td>
+                <td style="color:#e0e0ff">${u.fullName || ''}</td>
+                <td>${platformBadge(u.platform)}</td>
+                <td>${u.isVerified ? '<span style="color:#3b82f6">Verified</span>' : ''}</td>
+                <td><a href="${profileUrl}" target="_blank" style="color:#a78bfa;text-decoration:none">View</a></td>
+            </tr>`;
+        });
+        tHtml += '</tbody></table>';
+        if (allDfb.length > pageSize) {
+            tHtml += `<p style="color:#6a6a8a;font-size:12px;margin-top:8px">${allDfb.length - pageSize} more not shown. Use search to filter.</p>`;
+        }
+        document.getElementById('follow-back-table').innerHTML = tHtml;
+    }
+
+    // MANYCHAT FLOWS
+    // ============================================================
+    function renderManyChat() {
+        const container = document.getElementById('manychat-flows');
+        container.innerHTML = store.flows.map(flow => `
+            <div class="flow-card">
+                <div class="flex-between mb-1">
+                    <h3>${flow.name}</h3>
+                    ${platformBadge(flow.platform)}
+                </div>
+                <p class="flow-desc">${flow.description}</p>
+                <div class="mb-1"><span class="tag tag-med">${flow.trigger}</span></div>
+                <div class="flow-steps">
+                    ${flow.steps.map((s, i) => `
+                        ${i > 0 ? '<div class="flow-arrow">↓</div>' : ''}
+                        <div class="flow-step">
+                            <div class="flow-step-number">${i + 1}</div>
+                            <div class="flow-step-content">
+                                <div class="step-type">${s.type}</div>
+                                <div class="step-text">${s.text}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function showAddFlowModal() {
+        document.getElementById('modal-body').innerHTML = `
+            <h2>Create New ManyChat Flow</h2>
+            <div class="form-row"><div class="form-group"><label>Flow Name</label><input type="text" id="flow-name" placeholder="e.g., Free Ebook Funnel"></div></div>
+            <div class="form-row">
+                <div class="form-group"><label>Platform</label>
+                    <select id="flow-platform"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option></select>
+                </div>
+                <div class="form-group"><label>Type</label>
+                    <select id="flow-type"><option value="lead_capture">Lead Capture</option><option value="engagement">Engagement</option><option value="sales">Sales</option></select>
+                </div>
+            </div>
+            <div class="form-group mb-2"><label>Description</label><textarea id="flow-desc" placeholder="What does this flow do?"></textarea></div>
+            <div class="form-group mb-2"><label>Trigger</label><input type="text" id="flow-trigger" placeholder="e.g., Comment contains keyword: FREE"></div>
+            <div id="flow-steps-builder">
+                <label style="font-size:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">Steps</label>
+                <div id="flow-steps-list"></div>
+                <button class="btn btn-secondary mt-1" onclick="addFlowStep()">+ Add Step</button>
+            </div>
+            <button class="btn btn-primary mt-2" onclick="saveNewFlow()">Create Flow</button>
+        `;
+        document.getElementById('modal-overlay').classList.add('active');
+        addFlowStep();
+    }
+
+    let tempSteps = [];
+    function addFlowStep() {
+        const idx = tempSteps.length;
+        tempSteps.push({ type: 'Action', text: '' });
+        const list = document.getElementById('flow-steps-list');
+        const div = document.createElement('div');
+        div.className = 'form-row mt-1';
+        div.innerHTML = `
+            <div class="form-group" style="max-width:120px;"><select onchange="tempSteps[${idx}].type=this.value">
+                <option value="Trigger">Trigger</option><option value="Action" selected>Action</option><option value="Condition">Condition</option>
+                <option value="Question">Question</option><option value="Delay">Delay</option>
+            </select></div>
+            <div class="form-group"><input type="text" placeholder="Step description..." onchange="tempSteps[${idx}].text=this.value"></div>
+        `;
+        list.appendChild(div);
+    }
+
+    function saveNewFlow() {
+        store.flows.push({
+            id: 'flow_' + Date.now(),
+            name: document.getElementById('flow-name').value,
+            platform: document.getElementById('flow-platform').value,
+            type: document.getElementById('flow-type').value,
+            description: document.getElementById('flow-desc').value,
+            trigger: document.getElementById('flow-trigger').value,
+            steps: tempSteps.filter(s => s.text)
+        });
+        tempSteps = [];
+        saveStore();
+        closeModalDirect();
+        renderManyChat();
+    }
+
+    // ============================================================
+    // MODALS & IMPORT/EXPORT
+    // ============================================================
+    function closeModal(e) {
+        if (e.target === document.getElementById('modal-overlay')) closeModalDirect();
+    }
+
+    function closeModalDirect() {
+        document.getElementById('modal-overlay').classList.remove('active');
+    }
+
+    function showImportModal() {
+        document.getElementById('modal-body').innerHTML = `
+            <h2>Import Data</h2>
+            <p class="text-sm text-muted mb-2">Paste CSV data from your platform analytics exports. The system will auto-detect the format.</p>
+            <div class="form-group mb-2"><label>Data Source</label>
+                <select id="import-source">
+                    <option value="instagram">Instagram Insights CSV</option>
+                    <option value="tiktok">TikTok Analytics CSV</option>
+                    <option value="youtube">YouTube Studio CSV</option>
+                    <option value="generic">Generic CSV (title, views, likes, comments, shares, date)</option>
+                </select>
+            </div>
+            <div class="form-group mb-2"><label>Paste CSV Data</label><textarea id="import-data" rows="12" placeholder="Paste your CSV data here..."></textarea></div>
+            <button class="btn btn-primary" onclick="importData()">Import</button>
+        `;
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    function importData() {
+        const source = document.getElementById('import-source').value;
+        const raw = document.getElementById('import-data').value.trim();
+        if (!raw) return;
+
+        const lines = raw.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+
+        for (let i = 1; i < lines.length; i++) {
+            const vals = lines[i].split(',').map(v => v.trim());
+            if (vals.length < 3) continue;
+
+            const row = {};
+            headers.forEach((h, idx) => { row[h] = vals[idx]; });
+
+            store.posts.push({
+                id: 'p_import_' + Date.now() + '_' + i,
+                title: row.title || row.caption || row.name || 'Imported Post ' + i,
+                platform: source === 'generic' ? 'instagram' : source,
+                type: row.type || 'post',
+                date: row.date || new Date().toISOString().split('T')[0],
+                time: row.time || '12:00',
+                views: parseInt(row.views || row.impressions || row.reach || 0),
+                likes: parseInt(row.likes || row.hearts || 0),
+                comments: parseInt(row.comments || row.replies || 0),
+                shares: parseInt(row.shares || row.reposts || 0),
+                saves: parseInt(row.saves || row.bookmarks || 0),
+                engagementRate: '0.00',
+                hashtags: row.hashtags || '',
+                notes: 'Imported from CSV'
+            });
+        }
+
+        // Recalculate engagement rates
+        store.posts.forEach(p => {
+            if (p.views > 0) {
+                p.engagementRate = ((p.likes + p.comments + p.shares + (p.saves || 0)) / p.views * 100).toFixed(2);
+            }
+        });
+
+        saveStore();
+        closeModalDirect();
+        alert(`Imported ${lines.length - 1} posts!`);
+        renderOverview();
+    }
+
+    function exportAllData() {
+        const data = JSON.stringify(store, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'fwp_analytics_' + new Date().toISOString().split('T')[0] + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // ============================================================
+    // EXPORT REPORT (PNG snapshot of key metrics)
+    // ============================================================
+    function exportReport() {
+        const today = new Date().toISOString().split('T')[0];
+        const totalFollowers = (store.profiles.instagram?.followers || 0) + (store.profiles.tiktok?.followers || 0) +
+            (store.profiles.youtube?.subscribers || 0) + (store.profiles.threads?.followers || 0);
+        const totalViews = store.posts.reduce((s, p) => s + p.views, 0);
+        const totalLikes = store.posts.reduce((s, p) => s + (p.likes || 0), 0);
+        const totalComments = store.comments.length;
+        const rr = analyticsData?.responseRate?.overall;
+        const lp = analyticsData?.lastPosted;
+        const rev = analyticsData?.revenue;
+        const totalRev = (rev?.deals || []).reduce((s, d) => s + (d.amount || 0), 0);
+
+        const platBreakdown = ['instagram','tiktok','youtube','threads'].map(p => {
+            const posts = store.posts.filter(post => post.platform === p);
+            const views = posts.reduce((s, post) => s + post.views, 0);
+            const days = lp?.[p]?.daysSince ?? '?';
+            return `${p.toUpperCase()}: ${posts.length} posts | ${fmt(views)} views | Last: ${days}d ago`;
+        }).join('\n');
+
+        const hookSummary = (analyticsData?.hookTypes || []).slice(0, 5).map(h =>
+            `${h.type}: ${h.count} posts, ${h.avgViews.toLocaleString()} avg views`
+        ).join('\n');
+
+        const report = `FINANCE WITH PHIL — ANALYTICS REPORT
+Generated: ${today}
+${'='.repeat(50)}
+
+OVERVIEW
+  Total Followers: ${fmt(totalFollowers)}
+  Total Posts: ${store.posts.length}
+  Total Views: ${fmt(totalViews)}
+  Total Likes: ${fmt(totalLikes)}
+  Total Comments: ${fmt(totalComments)}
+  Revenue Tracked: $${totalRev.toLocaleString()}
+
+PLATFORM BREAKDOWN
+${platBreakdown}
+
+RESPONSE RATE
+  Overall: ${rr?.rate || 0}% (${rr?.replied || 0} of ${rr?.total || 0})
+  Questions: ${analyticsData?.responseRate?.bySentiment?.question?.total || 0} total
+  Priority Unreplied: ${analyticsData?.responseRate?.priorityUnreplied?.length || 0}
+
+TOP HOOK TYPES (by avg views)
+${hookSummary}
+
+VIRAL POSTS: ${analyticsData?.viralPosts?.length || 0} (3x+ platform average)
+CROSS-POSTS: ${analyticsData?.crossPosts?.length || 0} detected
+
+CADENCE
+${['instagram','tiktok','youtube','threads'].map(p => {
+    const c = analyticsData?.cadenceStats?.[p];
+    return `  ${p}: ${c?.postsPerWeek || 0}/wk, ${c?.postsPerMonth || 0}/mo, longest gap ${c?.longestGap || 0}d`;
+}).join('\n')}
+
+${rev?.deals?.length > 0 ? 'REVENUE DEALS\n' + rev.deals.map(d => `  ${d.date} | ${d.brand} | ${d.platform} | $${d.amount} | ${d.type}`).join('\n') : ''}
+`;
+
+        const blob = new Blob([report], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `FWP_Report_${today}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // ============================================================
+    // FOLLOWER HISTORY TRACKER (appends snapshots over time)
+    // ============================================================
+    function appendFollowerSnapshot() {
+        const history = JSON.parse(localStorage.getItem('fwp_follower_history') || '[]');
+        const today = new Date().toISOString().split('T')[0];
+        // Only one snapshot per day
+        if (history.length > 0 && history[history.length - 1].date === today) return;
+        history.push({
+            date: today,
+            instagram: store.profiles.instagram?.followers || 0,
+            tiktok: store.profiles.tiktok?.followers || 0,
+            youtube: store.profiles.youtube?.subscribers || 0,
+            threads: store.profiles.threads?.followers || 0,
+        });
+        localStorage.setItem('fwp_follower_history', JSON.stringify(history));
+    }
+
+    // ============================================================
+    // INITIALIZE — render immediately with defaults, then overlay real data
+    // ============================================================
+    renderOverview();
+
+    // Async: attempt to load real data from JSON files, then re-render
+    (async () => {
+        await loadRealData();
+        await loadAnalytics();
+        // Load persisted revenue deals from localStorage
+        const savedDeals = localStorage.getItem('fwp_revenue');
+        if (savedDeals && analyticsData) {
+            try { analyticsData.revenue.deals = JSON.parse(savedDeals); } catch {}
+        }
+        // Snapshot follower counts for history tracking
+        appendFollowerSnapshot();
+        renderOverview();
+    })();
+    </script>
+</body>
+</html>

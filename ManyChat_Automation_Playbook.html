@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance With Phil — ManyChat Automation Playbook</title>
+    <style>
+        :root {
+            --bg: #0f0f1a;
+            --card: #1a1a2e;
+            --border: #2a2a4a;
+            --accent: #6c5ce7;
+            --accent-light: #a29bfe;
+            --green: #00cec9;
+            --red: #ff6b6b;
+            --orange: #fdcb6e;
+            --blue: #74b9ff;
+            --pink: #fd79a8;
+            --text: #ffffff;
+            --text2: #a0a0c0;
+            --text3: #6a6a8a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        h1 { font-size: 28px; background: linear-gradient(135deg, var(--accent-light), var(--green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+        .subtitle { color: var(--text2); font-size: 16px; margin-bottom: 40px; }
+        .toc { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 40px; }
+        .toc h2 { font-size: 16px; color: var(--accent-light); margin-bottom: 12px; }
+        .toc a { display: block; color: var(--text2); text-decoration: none; padding: 4px 0; font-size: 14px; }
+        .toc a:hover { color: var(--accent-light); }
+        .flow-section { margin-bottom: 48px; }
+        .flow-section h2 { font-size: 22px; margin-bottom: 4px; }
+        .flow-section .platform-tag { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+        .tag-ig { background: rgba(225,48,108,0.2); color: #e1306c; }
+        .tag-tt { background: rgba(0,242,234,0.2); color: #00f2ea; }
+        .flow-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+        .flow-card h3 { font-size: 15px; color: var(--accent-light); margin-bottom: 8px; }
+        .flow-card p { color: var(--text2); font-size: 14px; margin-bottom: 12px; }
+        .step { display: flex; gap: 12px; padding: 12px 16px; background: rgba(108,92,231,0.05); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; margin-bottom: 8px; }
+        .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+        .step-label { font-size: 11px; color: var(--accent-light); text-transform: uppercase; letter-spacing: 0.5px; }
+        .step-text { font-size: 14px; }
+        .arrow { text-align: center; color: var(--text3); font-size: 16px; padding: 2px 0; }
+        .trigger-box { background: rgba(0,206,201,0.1); border: 1px solid rgba(0,206,201,0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+        .trigger-box strong { color: var(--green); }
+        .msg-preview { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin: 8px 0; font-style: italic; color: var(--text2); border-left: 3px solid var(--blue); }
+        .tip { background: rgba(253,203,110,0.1); border: 1px solid rgba(253,203,110,0.3); border-radius: 8px; padding: 12px 16px; margin-top: 12px; font-size: 13px; }
+        .tip strong { color: var(--orange); }
+        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; }
+        .metric { text-align: center; padding: 12px; background: rgba(108,92,231,0.1); border-radius: 8px; }
+        .metric-val { font-size: 24px; font-weight: 700; color: var(--accent-light); }
+        .metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; }
+        .setup-steps { counter-reset: setup; list-style: none; }
+        .setup-steps li { counter-increment: setup; padding: 8px 0 8px 32px; position: relative; font-size: 14px; color: var(--text2); }
+        .setup-steps li::before { content: counter(setup); position: absolute; left: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+        hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+        @media print { body { background: white; color: #333; } .flow-card { border: 1px solid #ddd; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>ManyChat Automation Playbook</h1>
+    <p class="subtitle">6 ready-to-build flows for @phillip.karaya (Instagram) and @financewithphil (TikTok)</p>
+
+    <div class="toc">
+        <h2>Flows in This Playbook</h2>
+        <a href="#flow1">1. Free Course Lead Magnet (Instagram) — Lead Capture</a>
+        <a href="#flow2">2. Story Mention Auto-Reply (Instagram) — Engagement</a>
+        <a href="#flow3">3. Consultation Booking Funnel (Instagram) — Sales</a>
+        <a href="#flow4">4. Free Resource Keyword (TikTok) — Lead Capture</a>
+        <a href="#flow5">5. Welcome New Follower (Instagram) — Engagement</a>
+        <a href="#flow6">6. Product/Tool Recommendations (TikTok) — Sales</a>
+    </div>
+
+    <!-- ============ FLOW 1 ============ -->
+    <div class="flow-section" id="flow1">
+        <h2>1. Free Course Lead Magnet</h2>
+        <span class="platform-tag tag-ig">Instagram</span>
+        <span class="platform-tag" style="background:rgba(108,92,231,0.2);color:var(--accent-light);">Lead Capture</span>
+
+        <div class="flow-card">
+            <h3>What It Does</h3>
+            <p>When a follower comments "COURSE" on any of your posts, ManyChat automatically sends them a DM with a link to your free Financial Literacy course, then follows up 24 hours later.</p>
+
+            <div class="trigger-box">
+                <strong>Trigger:</strong> Instagram Comment contains keyword <code>COURSE</code> (case-insensitive) on any post
+            </div>
+
+            <div class="step">
+                <div class="step-num">1</div>
+                <div><div class="step-label">Trigger</div><div class="step-text">User comments "COURSE" on any Instagram post</div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div><div class="step-label">Condition</div><div class="step-text">Check if user is a new subscriber (hasn't received this before)</div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div>
+                    <div class="step-label">Send DM</div>
+                    <div class="step-text">Deliver the course link</div>
+                    <div class="msg-preview">Hey! Thanks for your interest in leveling up your finances. Here's your free Finance With Phil course: [COURSE_LINK]<br><br>This covers budgeting, investing basics, and credit — everything you need to start building wealth. Let me know if you have any questions!</div>
+                </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div><div class="step-label">Tag</div><div class="step-text">Add tag: <code>course_lead</code> and <code>ig_lead</code></div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">5</div>
+                <div><div class="step-label">Smart Delay</div><div class="step-text">Wait 24 hours</div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">6</div>
+                <div>
+                    <div class="step-label">Follow-Up DM</div>
+                    <div class="step-text">Re-engage if they haven't opened</div>
+                    <div class="msg-preview">Hey! Did you get a chance to check out the free course? Let me know if you have any questions — I'm here to help you on your wealth-building journey.</div>
+                </div>
+            </div>
+
+            <div class="tip"><strong>Pro Tip:</strong> Add a CTA in your post captions like "Comment COURSE to get my free financial literacy course!" This trains your audience to engage with keyword triggers.</div>
+
+            <h3 style="margin-top:20px;">ManyChat Setup Steps</h3>
+            <ol class="setup-steps">
+                <li>Go to Automation → New Flow → Start from Scratch</li>
+                <li>Set trigger: "Instagram Comment" → Keyword "COURSE" → All Posts</li>
+                <li>Add condition: "Is Subscriber" → If No, continue flow; If Yes, send "You already have access!"</li>
+                <li>Add action: Send Message → paste DM copy above</li>
+                <li>Add action: Add Tag → "course_lead", "ig_lead"</li>
+                <li>Add Smart Delay: 24 hours</li>
+                <li>Add action: Send Message → paste follow-up copy</li>
+                <li>Publish flow</li>
+            </ol>
+
+            <div class="metrics">
+                <div class="metric"><div class="metric-val">15-25%</div><div class="metric-label">Expected Open Rate</div></div>
+                <div class="metric"><div class="metric-val">5-10%</div><div class="metric-label">Click-Through Rate</div></div>
+                <div class="metric"><div class="metric-val">2-5%</div><div class="metric-label">Conversion to Paid</div></div>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- ============ FLOW 2 ============ -->
+    <div class="flow-section" id="flow2">
+        <h2>2. Story Mention Auto-Reply</h2>
+        <span class="platform-tag tag-ig">Instagram</span>
+        <span class="platform-tag" style="background:rgba(0,206,201,0.2);color:var(--green);">Engagement</span>
+
+        <div class="flow-card">
+            <h3>What It Does</h3>
+            <p>Automatically thanks anyone who mentions you in their Instagram story, building loyalty and encouraging more UGC.</p>
+
+            <div class="trigger-box">
+                <strong>Trigger:</strong> Instagram Story Mention of @phillip.karaya
+            </div>
+
+            <div class="step">
+                <div class="step-num">1</div>
+                <div><div class="step-label">Trigger</div><div class="step-text">User mentions @phillip.karaya in their story</div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div>
+                    <div class="step-label">Send DM</div>
+                    <div class="msg-preview">Thanks so much for the shoutout! I really appreciate you sharing my content with your people. It means a lot to have supporters like you in the Finance With Phil community.</div>
+                </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div><div class="step-label">Tag</div><div class="step-text">Add tag: <code>brand_advocate</code></div></div>
+            </div>
+
+            <div class="tip"><strong>Pro Tip:</strong> Occasionally repost their story mention to your own stories (manually). This creates a positive feedback loop where people tag you hoping for a repost.</div>
+
+            <h3 style="margin-top:20px;">ManyChat Setup Steps</h3>
+            <ol class="setup-steps">
+                <li>Go to Automation → New Flow → Start from Scratch</li>
+                <li>Set trigger: "Instagram Story Mention"</li>
+                <li>Add action: Send Message → paste DM copy</li>
+                <li>Add action: Add Tag → "brand_advocate"</li>
+                <li>Publish flow</li>
+            </ol>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- ============ FLOW 3 ============ -->
+    <div class="flow-section" id="flow3">
+        <h2>3. Consultation Booking Funnel</h2>
+        <span class="platform-tag tag-ig">Instagram</span>
+        <span class="platform-tag" style="background:rgba(255,107,107,0.2);color:var(--red);">Sales</span>
+
+        <div class="flow-card">
+            <h3>What It Does</h3>
+            <p>Turns interest into booked calls. When someone comments "CONSULT" or DMs asking about consulting, they get guided through a qualification funnel that ends with a Calendly booking link.</p>
+
+            <div class="trigger-box">
+                <strong>Trigger:</strong> Comment keyword <code>CONSULT</code> or DM keyword <code>consulting</code>, <code>1-on-1</code>, <code>session</code>
+            </div>
+
+            <div class="step">
+                <div class="step-num">1</div>
+                <div><div class="step-label">Trigger</div><div class="step-text">User comments "CONSULT" or DMs about consulting</div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div>
+                    <div class="step-label">Welcome DM</div>
+                    <div class="msg-preview">Hey! Thanks for your interest in a 1-on-1 consultation. I'd love to help you level up your finances. Let me ask a couple quick questions so I can point you in the right direction...</div>
+                </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div>
+                    <div class="step-label">Quick Reply Question</div>
+                    <div class="step-text">What area do you need the most help with?</div>
+                    <div class="msg-preview">Quick Replies: A) Credit Repair &amp; Building | B) Investing &amp; Wealth | C) Real Estate | D) Starting a Business</div>
+                </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div>
+                    <div class="step-label">Quick Reply Question</div>
+                    <div class="step-text">What's your current situation?</div>
+                    <div class="msg-preview">Quick Replies: A) Just getting started | B) Have some experience, want to grow | C) Ready to scale to the next level</div>
+                </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">5</div>
+                <div>
+                    <div class="step-label">Booking Link</div>
+                    <div class="msg-preview">Based on what you shared, I think a consultation would be perfect for you. Here's my calendar — pick a time that works:<br><br>[CALENDLY_LINK]<br><br>Looking forward to connecting!</div>
+                </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">6</div>
+                <div><div class="step-label">Tags</div><div class="step-text">Tag with interest area + <code>consult_lead</code> + <code>hot_lead</code></div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">7</div>
+                <div><div class="step-label">Smart Delay</div><div class="step-text">Wait 48 hours (only if no booking detected)</div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">8</div>
+                <div>
+                    <div class="step-label">Follow-Up</div>
+                    <div class="msg-preview">Just checking in — I still have a few spots open this week if you're interested in that consultation. No pressure at all, but I'd love to help you reach your goals. Here's the link again: [CALENDLY_LINK]</div>
+                </div>
+            </div>
+
+            <div class="tip"><strong>Pro Tip:</strong> Use different Calendly links for different service tiers. Tag each user with their answers so you can segment and retarget later with relevant offers.</div>
+
+            <h3 style="margin-top:20px;">ManyChat Setup Steps</h3>
+            <ol class="setup-steps">
+                <li>Go to Automation → New Flow</li>
+                <li>Set trigger: Comment keyword "CONSULT" + DM keywords "consulting", "1-on-1", "session"</li>
+                <li>Add Welcome Message with text above</li>
+                <li>Add Quick Reply node with 4 options (Credit, Investing, Real Estate, Business)</li>
+                <li>Add Quick Reply node with 3 experience levels</li>
+                <li>Add Message with Calendly booking link</li>
+                <li>Add Tags based on answers using Conditions</li>
+                <li>Add Smart Delay: 48 hours</li>
+                <li>Add Condition: Check if user has "booked" tag → If No, send follow-up</li>
+                <li>Publish flow</li>
+            </ol>
+
+            <div class="metrics">
+                <div class="metric"><div class="metric-val">30-50%</div><div class="metric-label">Completion Rate</div></div>
+                <div class="metric"><div class="metric-val">10-20%</div><div class="metric-label">Booking Rate</div></div>
+                <div class="metric"><div class="metric-val">$150-500</div><div class="metric-label">Revenue per Booking</div></div>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- ============ FLOW 4 ============ -->
+    <div class="flow-section" id="flow4">
+        <h2>4. Free Resource Keyword</h2>
+        <span class="platform-tag tag-tt">TikTok</span>
+        <span class="platform-tag" style="background:rgba(108,92,231,0.2);color:var(--accent-light);">Lead Capture</span>
+
+        <div class="flow-card">
+            <h3>What It Does</h3>
+            <p>When someone comments "FREE" on any TikTok, auto-reply to their comment and send a DM with a free budgeting template download. This drives massive engagement + lead capture.</p>
+
+            <div class="trigger-box">
+                <strong>Trigger:</strong> TikTok Comment contains keyword <code>FREE</code>
+            </div>
+
+            <div class="step">
+                <div class="step-num">1</div>
+                <div><div class="step-label">Trigger</div><div class="step-text">User comments "FREE" on any TikTok video</div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div>
+                    <div class="step-label">Auto-Reply Comment</div>
+                    <div class="msg-preview">Just sent you a DM with the free resource! Check your inbox</div>
+                </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div>
+                    <div class="step-label">Send DM</div>
+                    <div class="msg-preview">Hey! Here's your free budgeting template as promised: [LINK]<br><br>This is the exact system I use to track my money. Follow me for more finance tips that actually work!</div>
+                </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div><div class="step-label">Tag</div><div class="step-text">Add tags: <code>tiktok_lead</code>, <code>budget_resource</code></div></div>
+            </div>
+
+            <div class="tip"><strong>Pro Tip:</strong> The comment reply is key — it shows other viewers that you're responsive and creates FOMO. Other people will comment "FREE" when they see the reply, creating a viral loop.</div>
+
+            <h3 style="margin-top:20px;">ManyChat Setup Steps</h3>
+            <ol class="setup-steps">
+                <li>Go to Automation → New Flow → TikTok</li>
+                <li>Set trigger: "TikTok Comment" → Keyword "FREE" → All Videos</li>
+                <li>Add action: Reply to Comment → paste reply text</li>
+                <li>Add action: Send Message → paste DM with link</li>
+                <li>Add action: Add Tag → "tiktok_lead", "budget_resource"</li>
+                <li>Publish flow</li>
+            </ol>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- ============ FLOW 5 ============ -->
+    <div class="flow-section" id="flow5">
+        <h2>5. Welcome New Follower</h2>
+        <span class="platform-tag tag-ig">Instagram</span>
+        <span class="platform-tag" style="background:rgba(0,206,201,0.2);color:var(--green);">Engagement</span>
+
+        <div class="flow-card">
+            <h3>What It Does</h3>
+            <p>Sends a personalized welcome sequence to every new follower, asks about their money goals, and delivers a relevant free resource based on their answer. This segments your audience from Day 1.</p>
+
+            <div class="trigger-box">
+                <strong>Trigger:</strong> New Instagram Follower (Note: requires Instagram Messaging API)
+            </div>
+
+            <div class="step">
+                <div class="step-num">1</div>
+                <div><div class="step-label">Trigger</div><div class="step-text">New user follows @phillip.karaya</div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div><div class="step-label">Smart Delay</div><div class="step-text">Wait 5 minutes (feels more natural)</div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div>
+                    <div class="step-label">Welcome DM</div>
+                    <div class="msg-preview">Welcome to the Finance With Phil community! I help people build real wealth through smart money moves, investing, and entrepreneurship.<br><br>Quick question so I can point you to the right content...</div>
+                </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div>
+                    <div class="step-label">Quick Reply</div>
+                    <div class="step-text">What's your #1 money goal right now?</div>
+                    <div class="msg-preview">A) Save more money | B) Start investing | C) Start a business | D) Fix my credit</div>
+                </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">5</div>
+                <div>
+                    <div class="step-label">Conditional Responses</div>
+                    <div class="step-text">Each answer leads to a different resource:</div>
+                    <div class="msg-preview">
+                        <strong>A) Save more →</strong> "Here's my free budgeting template: [LINK]"<br>
+                        <strong>B) Invest →</strong> "Check out my investing 101 guide: [LINK]"<br>
+                        <strong>C) Business →</strong> "Here's my side hustle starter guide: [LINK]"<br>
+                        <strong>D) Credit →</strong> "Here's my credit repair checklist: [LINK]"
+                    </div>
+                </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">6</div>
+                <div><div class="step-label">Tag</div><div class="step-text">Tag based on answer: <code>goal_savings</code>, <code>goal_investing</code>, <code>goal_business</code>, or <code>goal_credit</code></div></div>
+            </div>
+
+            <div class="tip"><strong>Pro Tip:</strong> These tags are gold for future campaigns. When you launch a credit course, blast everyone tagged <code>goal_credit</code>. When you promote your investing content, target <code>goal_investing</code>. Personalized outreach converts 3-5x better.</div>
+
+            <h3 style="margin-top:20px;">ManyChat Setup Steps</h3>
+            <ol class="setup-steps">
+                <li>Go to Automation → New Flow</li>
+                <li>Set trigger: "New Follower" (requires Instagram messaging permissions)</li>
+                <li>Add Smart Delay: 5 minutes</li>
+                <li>Add Message: Welcome text</li>
+                <li>Add Quick Reply: 4 options for money goals</li>
+                <li>Add Condition for each answer → different message + different tag</li>
+                <li>Publish flow</li>
+            </ol>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- ============ FLOW 6 ============ -->
+    <div class="flow-section" id="flow6">
+        <h2>6. Product/Tool Recommendations</h2>
+        <span class="platform-tag tag-tt">TikTok</span>
+        <span class="platform-tag" style="background:rgba(255,107,107,0.2);color:var(--red);">Sales</span>
+
+        <div class="flow-card">
+            <h3>What It Does</h3>
+            <p>When someone DMs "TOOLS" or "APPS", send them your curated list of recommended finance tools with affiliate links. Passive income from recommendations you're already making in videos.</p>
+
+            <div class="trigger-box">
+                <strong>Trigger:</strong> TikTok DM contains keyword <code>TOOLS</code>, <code>APPS</code>, or <code>RESOURCES</code>
+            </div>
+
+            <div class="step">
+                <div class="step-num">1</div>
+                <div><div class="step-label">Trigger</div><div class="step-text">User DMs "TOOLS", "APPS", or "RESOURCES"</div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div>
+                    <div class="step-label">Send DM</div>
+                    <div class="msg-preview">Here are the exact tools I use every day to manage my money and businesses:<br><br>
+                    Investing: [APP_LINK]<br>
+                    Budgeting: [APP_LINK]<br>
+                    Credit Monitoring: [APP_LINK]<br>
+                    Business Banking: [APP_LINK]<br>
+                    Tax Prep: [APP_LINK]<br><br>
+                    Let me know if you have questions about any of these!</div>
+                </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div><div class="step-label">Tag</div><div class="step-text">Add tags: <code>tools_interest</code>, <code>affiliate_prospect</code></div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div><div class="step-label">Smart Delay</div><div class="step-text">Wait 3 days</div></div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="step">
+                <div class="step-num">5</div>
+                <div>
+                    <div class="step-label">Follow-Up</div>
+                    <div class="msg-preview">Hey! Have you tried any of those tools yet? My personal favorite is [APP] — it literally changed how I manage my money. Lmk if you need help setting anything up!</div>
+                </div>
+            </div>
+
+            <div class="tip"><strong>Pro Tip:</strong> End your TikTok videos with "DM me TOOLS for my full list of recommended apps!" This CTA converts especially well on finance content because viewers are actively looking for solutions.</div>
+
+            <h3 style="margin-top:20px;">ManyChat Setup Steps</h3>
+            <ol class="setup-steps">
+                <li>Go to Automation → New Flow → TikTok</li>
+                <li>Set trigger: "TikTok DM" → Keywords "TOOLS", "APPS", "RESOURCES"</li>
+                <li>Add Message: Tool recommendations with links</li>
+                <li>Add Tags: "tools_interest", "affiliate_prospect"</li>
+                <li>Add Smart Delay: 3 days</li>
+                <li>Add Follow-up Message</li>
+                <li>Publish flow</li>
+            </ol>
+
+            <div class="metrics">
+                <div class="metric"><div class="metric-val">$2-10</div><div class="metric-label">Revenue per Lead</div></div>
+                <div class="metric"><div class="metric-val">20-40%</div><div class="metric-label">Click-Through Rate</div></div>
+                <div class="metric"><div class="metric-val">5-15%</div><div class="metric-label">Sign-Up Rate</div></div>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="flow-card">
+        <h3>Quick Reference: Keyword Cheat Sheet</h3>
+        <table style="width:100%;font-size:14px;border-collapse:collapse;">
+            <thead><tr style="border-bottom:1px solid var(--border);">
+                <th style="text-align:left;padding:8px;color:var(--text2);">Keyword</th>
+                <th style="text-align:left;padding:8px;color:var(--text2);">Platform</th>
+                <th style="text-align:left;padding:8px;color:var(--text2);">Flow</th>
+                <th style="text-align:left;padding:8px;color:var(--text2);">Action</th>
+            </tr></thead>
+            <tbody>
+                <tr><td style="padding:8px;">COURSE</td><td>IG Comment</td><td>Lead Magnet</td><td>DM course link</td></tr>
+                <tr><td style="padding:8px;">CONSULT</td><td>IG Comment/DM</td><td>Sales Funnel</td><td>Qualification → booking</td></tr>
+                <tr><td style="padding:8px;">FREE</td><td>TT Comment</td><td>Lead Capture</td><td>Reply + DM resource</td></tr>
+                <tr><td style="padding:8px;">TOOLS / APPS</td><td>TT DM</td><td>Affiliate</td><td>DM tool list</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="flow-card" style="margin-top:20px;">
+        <h3>Tagging Strategy</h3>
+        <p>Use consistent tags across all flows to build segmented audiences:</p>
+        <table style="width:100%;font-size:14px;border-collapse:collapse;margin-top:12px;">
+            <thead><tr style="border-bottom:1px solid var(--border);">
+                <th style="text-align:left;padding:8px;color:var(--text2);">Tag</th>
+                <th style="text-align:left;padding:8px;color:var(--text2);">Meaning</th>
+                <th style="text-align:left;padding:8px;color:var(--text2);">Use For</th>
+            </tr></thead>
+            <tbody>
+                <tr><td style="padding:8px;"><code>ig_lead</code></td><td>Came from Instagram</td><td>Platform segmentation</td></tr>
+                <tr><td style="padding:8px;"><code>tiktok_lead</code></td><td>Came from TikTok</td><td>Platform segmentation</td></tr>
+                <tr><td style="padding:8px;"><code>course_lead</code></td><td>Downloaded free course</td><td>Upsell to paid course</td></tr>
+                <tr><td style="padding:8px;"><code>consult_lead</code></td><td>Interested in consulting</td><td>Booking follow-ups</td></tr>
+                <tr><td style="padding:8px;"><code>hot_lead</code></td><td>High purchase intent</td><td>Priority follow-up</td></tr>
+                <tr><td style="padding:8px;"><code>brand_advocate</code></td><td>Shares your content</td><td>Loyalty rewards, collaborations</td></tr>
+                <tr><td style="padding:8px;"><code>goal_savings</code></td><td>Wants to save more</td><td>Budgeting content</td></tr>
+                <tr><td style="padding:8px;"><code>goal_investing</code></td><td>Wants to invest</td><td>Investing content</td></tr>
+                <tr><td style="padding:8px;"><code>goal_business</code></td><td>Wants to start a biz</td><td>Entrepreneurship content</td></tr>
+                <tr><td style="padding:8px;"><code>goal_credit</code></td><td>Wants to fix credit</td><td>Credit content</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

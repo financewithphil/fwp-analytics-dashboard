@@ -1,0 +1,32 @@
+{
+  "instagram": {
+    "status": "complete",
+    "totalScraped": 672,
+    "lastScrapedDate": "2026-03-28T13:16:00",
+    "lastPostId": "ig_3830310014326735110"
+  },
+  "tiktok": {
+    "status": "complete",
+    "totalScraped": 150,
+    "lastScrapedDate": "2026-03-28T12:52:39.002883",
+    "lastPostId": "tt_7591534197777435934"
+  },
+  "youtube": {
+    "status": "complete",
+    "totalScraped": 644,
+    "lastScrapedDate": "2026-03-28T12:33:43.624563",
+    "lastPostId": "yt_gxmWyGnKT0w"
+  },
+  "threads": {
+    "status": "complete",
+    "totalScraped": 500,
+    "lastScrapedDate": "2026-03-28T12:57:37.595381",
+    "lastPostId": "th_3812166815183734920"
+  },
+  "followers": {
+    "instagram": 10972,
+    "tiktok": 14100,
+    "youtube": 5130,
+    "threads": 1787
+  }
+}
