@@ -1444,6 +1444,18 @@
                                 <button class="btn btn-secondary" onclick="captureCoverFromVideo()" style="padding:4px 10px;font-size:0.75rem;flex:1;">Capture Frame</button>
                                 <button class="btn btn-primary" onclick="generateCover()" style="padding:4px 10px;font-size:0.75rem;flex:1;">Generate & Download</button>
                             </div>
+                            <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+                                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                                    <span style="font-size:0.75rem;color:var(--pink);font-weight:600;">AI Cover</span>
+                                    <span style="font-size:0.65rem;color:var(--text-muted);">via Higgsfield</span>
+                                </div>
+                                <textarea id="ai-cover-prompt" rows="2" placeholder="Describe the cover you want... (e.g. 'cinematic shot of a renovated house at sunset, real estate investing vibe')" style="width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);padding:6px 8px;font-size:0.75rem;resize:vertical;"></textarea>
+                                <div style="display:flex;gap:4px;margin-top:4px;">
+                                    <button class="btn btn-secondary" onclick="autoFillCoverPrompt()" style="padding:4px 8px;font-size:0.7rem;">Auto Prompt</button>
+                                    <button class="btn btn-primary" onclick="generateAICover()" style="padding:4px 10px;font-size:0.75rem;flex:1;background:linear-gradient(135deg,var(--pink),var(--accent));">Generate AI Cover</button>
+                                </div>
+                                <div id="ai-cover-status" style="margin-top:4px;font-size:0.75rem;color:var(--text-muted);"></div>
+                            </div>
                             <div id="cover-preview" style="margin-top:8px;border-radius:6px;overflow:hidden;display:none;"></div>
                         </div>
                         <div id="studio-meta" style="font-size:0.85rem;color:var(--text-secondary);margin-top:12px;"></div>
@@ -4084,6 +4096,94 @@ ${rev?.deals?.length > 0 ? 'REVENUE DEALS\n' + rev.deals.map(d => `  ${d.date} |
     function studioFilesAdded(files) {
         if (!files || files.length === 0) return;
         alert(`To add ${files.length} file(s) to the content queue:\n\n1. Copy them to your Content Studio folder\n2. Click "Scan Folder" to detect them\n\nDrag-and-drop upload requires the local server to be running.`);
+    }
+
+    function autoFillCoverPrompt() {
+        const item = (store.contentQueue || []).find(i => i.id === studioSelectedId);
+        if (!item) return;
+        const textarea = document.getElementById('ai-cover-prompt');
+        const caption = item.captions?.instagram || item.captions?.tiktok || item.filename;
+        const category = item.analysis?.contentCategory || 'content';
+        const hookType = item.analysis?.hookType || '';
+
+        // Auto-generate a prompt based on video context
+        const prompts = {
+            'real_estate_investing': `Cinematic wide shot of a beautifully renovated house, golden hour lighting, real estate investing aesthetic, professional photography, warm tones, aspirational wealth-building vibe`,
+            'finance_tips': `Clean modern workspace with financial charts on screen, money and growth imagery, professional finance content creator aesthetic, bold typography space for text overlay`,
+            'comedy': `Bold colorful thumbnail style image, expressive face reaction, bright saturated colors, eye-catching social media cover, dramatic lighting`,
+        };
+
+        textarea.value = prompts[category] || `Professional social media cover photo for: ${caption.slice(0, 100)}. Eye-catching, bold colors, cinematic quality, designed for vertical mobile viewing`;
+    }
+
+    async function generateAICover() {
+        const prompt = document.getElementById('ai-cover-prompt').value.trim();
+        if (!prompt) {
+            document.getElementById('ai-cover-status').innerHTML = '<span style="color:var(--red);">Enter a prompt first, or click Auto Prompt</span>';
+            return;
+        }
+
+        const statusEl = document.getElementById('ai-cover-status');
+
+        if (studioServerOnline) {
+            // Send to server which queues the request
+            statusEl.innerHTML = '<span style="color:var(--orange);">Sending to Higgsfield... (generation takes 30-60s)</span>';
+            try {
+                const resp = await fetch(STUDIO_API + '/ai-cover', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: studioSelectedId, prompt })
+                });
+                const data = await resp.json();
+                if (data.status === 'queued') {
+                    statusEl.innerHTML = `<span style="color:var(--orange);">Queued! Job: ${data.job_id}. Polling for result...</span>`;
+                    pollAICover(data.job_id);
+                } else if (data.status === 'generated') {
+                    showAICoverResult(data);
+                } else {
+                    statusEl.innerHTML = `<span style="color:var(--orange);">Request saved. Ask Claude Code: "generate the AI cover for ${studioSelectedId}"</span>`;
+                }
+            } catch (err) {
+                statusEl.innerHTML = `<span style="color:var(--red);">Error: ${err.message}</span>`;
+            }
+        } else {
+            // Fallback: copy prompt to clipboard
+            navigator.clipboard.writeText(prompt).then(() => {
+                statusEl.innerHTML = '<span style="color:var(--orange);">Prompt copied! Paste to Claude Code and ask: "generate this as a Higgsfield cover photo"</span>';
+            });
+        }
+    }
+
+    async function pollAICover(jobId) {
+        const statusEl = document.getElementById('ai-cover-status');
+        for (let i = 0; i < 30; i++) {
+            await new Promise(r => setTimeout(r, 3000));
+            try {
+                const resp = await fetch(STUDIO_API + '/ai-cover-status?job=' + jobId);
+                const data = await resp.json();
+                if (data.status === 'completed' && data.image_url) {
+                    showAICoverResult(data);
+                    return;
+                } else if (data.status === 'failed') {
+                    statusEl.innerHTML = '<span style="color:var(--red);">Generation failed. Try a different prompt.</span>';
+                    return;
+                }
+                statusEl.innerHTML = `<span style="color:var(--orange);">Generating... (${(i+1)*3}s)</span>`;
+            } catch { break; }
+        }
+        statusEl.innerHTML = '<span style="color:var(--orange);">Still generating. Check back or ask Claude Code for status.</span>';
+    }
+
+    function showAICoverResult(data) {
+        const statusEl = document.getElementById('ai-cover-status');
+        const preview = document.getElementById('cover-preview');
+        const url = data.image_url || data.file;
+        statusEl.innerHTML = '<span style="color:var(--green);">AI cover generated!</span>';
+        preview.innerHTML = `
+            <img src="${url}" style="width:100%;border-radius:4px;">
+            <a href="${url}" download class="btn btn-primary" style="display:block;text-align:center;margin-top:6px;padding:6px;font-size:0.8rem;text-decoration:none;">Download AI Cover</a>
+        `;
+        preview.style.display = 'block';
     }
 
     function updateCoverTimeLabel() {

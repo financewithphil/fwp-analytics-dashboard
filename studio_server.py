@@ -57,6 +57,22 @@ class StudioHandler(BaseHTTPRequestHandler):
             with open(ANALYSIS_FILE) as f:
                 self._json_response(json.load(f))
 
+        elif path == "/ai-cover-status":
+            params = parse_qs(urlparse(self.path).query)
+            job_id = params.get("job", [None])[0]
+            ai_file = DIR / "data" / "exports" / "ai_cover_requests.json"
+            try:
+                with open(ai_file) as f:
+                    requests = json.load(f)
+                # Find latest matching request
+                for req in reversed(requests):
+                    if req.get("job_id") == job_id or (job_id and req.get("status") == "completed"):
+                        self._json_response(req)
+                        return
+                self._json_response({"status": "pending"})
+            except Exception:
+                self._json_response({"status": "pending"})
+
         elif path.startswith("/frame/"):
             # Serve extracted frame images
             parts = path.split("/frame/", 1)[1]  # content_id/frame_00.jpg
@@ -208,6 +224,37 @@ class StudioHandler(BaseHTTPRequestHandler):
                 json.dump(queue, f, indent=2)
 
             self._json_response({"status": "updated", "queue": queue})
+
+        elif path == "/ai-cover":
+            content_id = body.get("id")
+            prompt = body.get("prompt", "")
+
+            # Save the request for Claude Code to pick up
+            ai_file = DIR / "data" / "exports" / "ai_cover_requests.json"
+            try:
+                with open(ai_file) as f:
+                    requests = json.load(f)
+            except Exception:
+                requests = []
+
+            import time as _time
+            request_entry = {
+                "content_id": content_id,
+                "prompt": prompt,
+                "timestamp": _time.time(),
+                "status": "pending",
+                "job_id": None,
+                "image_url": None
+            }
+            requests.append(request_entry)
+            with open(ai_file, "w") as f:
+                json.dump(requests, f, indent=2)
+
+            self._json_response({
+                "status": "queued",
+                "message": "Request saved. Ask Claude Code to generate it, or it will be picked up automatically.",
+                "job_id": f"local_{int(_time.time())}"
+            })
 
         elif path == "/generate-cover":
             content_id = body.get("id")
