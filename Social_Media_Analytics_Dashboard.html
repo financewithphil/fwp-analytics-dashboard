@@ -820,6 +820,7 @@
         .score-bar { height:8px; background:var(--bg-input); border-radius:4px; overflow:hidden; flex:1; }
         .score-bar-fill { height:100%; border-radius:4px; transition:width 0.3s; }
         .studio-cap-tab.active, .preview-fmt.active { background:var(--accent) !important; color:white !important; }
+        .dl-option:hover { background:var(--bg-card-hover); }
         .status-inbox { color:var(--text-muted); }
         .status-analyzed { color:var(--blue); }
         .status-captioned { color:var(--orange); }
@@ -1476,6 +1477,27 @@
                             <div style="display:flex;gap:8px;flex-wrap:wrap;">
                                 <button class="btn btn-primary" onclick="studioPublish()" style="padding:8px 24px;">Post Now</button>
                                 <button class="btn btn-secondary" onclick="studioExportStory()">Export to Story</button>
+                                <div style="position:relative;display:inline-block;" id="download-dropdown-wrap">
+                                    <button class="btn btn-secondary" onclick="toggleDownloadMenu()">Download ▾</button>
+                                    <div id="download-menu" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 0;min-width:220px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+                                        <div style="padding:4px 12px;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Select Ratio</div>
+                                        <div class="dl-option" onclick="studioDownload('9:16','1080','1920')" style="padding:8px 12px;cursor:pointer;font-size:0.85rem;display:flex;justify-content:space-between;">
+                                            <span>9:16 Vertical</span><span style="color:var(--text-muted);font-size:0.75rem;">1080×1920 · Reels/TikTok/Shorts</span>
+                                        </div>
+                                        <div class="dl-option" onclick="studioDownload('4:5','1080','1350')" style="padding:8px 12px;cursor:pointer;font-size:0.85rem;display:flex;justify-content:space-between;">
+                                            <span>4:5 Portrait</span><span style="color:var(--text-muted);font-size:0.75rem;">1080×1350 · IG Feed</span>
+                                        </div>
+                                        <div class="dl-option" onclick="studioDownload('1:1','1080','1080')" style="padding:8px 12px;cursor:pointer;font-size:0.85rem;display:flex;justify-content:space-between;">
+                                            <span>1:1 Square</span><span style="color:var(--text-muted);font-size:0.75rem;">1080×1080 · IG/FB Feed</span>
+                                        </div>
+                                        <div class="dl-option" onclick="studioDownload('16:9','1920','1080')" style="padding:8px 12px;cursor:pointer;font-size:0.85rem;display:flex;justify-content:space-between;">
+                                            <span>16:9 Landscape</span><span style="color:var(--text-muted);font-size:0.75rem;">1920×1080 · YouTube/Web</span>
+                                        </div>
+                                        <div class="dl-option" onclick="studioDownload('original','0','0')" style="padding:8px 12px;cursor:pointer;font-size:0.85rem;display:flex;justify-content:space-between;">
+                                            <span>Original</span><span style="color:var(--text-muted);font-size:0.75rem;">No conversion</span>
+                                        </div>
+                                    </div>
+                                </div>
                                 <button class="btn btn-secondary" onclick="studioMarkReady()">Mark Ready</button>
                                 <button class="btn btn-secondary" onclick="studioDelete()" style="color:var(--red);">Delete</button>
                             </div>
@@ -4021,6 +4043,65 @@ ${rev?.deals?.length > 0 ? 'REVENUE DEALS\n' + rev.deals.map(d => `  ${d.date} |
     function studioFilesAdded(files) {
         if (!files || files.length === 0) return;
         alert(`To add ${files.length} file(s) to the content queue:\n\n1. Copy them to your Content Studio folder\n2. Click "Scan Folder" to detect them\n\nDrag-and-drop upload requires the local server to be running.`);
+    }
+
+    function toggleDownloadMenu() {
+        const menu = document.getElementById('download-menu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const wrap = document.getElementById('download-dropdown-wrap');
+        const menu = document.getElementById('download-menu');
+        if (wrap && menu && !wrap.contains(e.target)) menu.style.display = 'none';
+    });
+
+    async function studioDownload(ratio, width, height) {
+        document.getElementById('download-menu').style.display = 'none';
+        if (!studioSelectedId) return;
+
+        const statusEl = document.getElementById('studio-publish-status');
+
+        if (ratio === 'original') {
+            // Direct download from server — no conversion
+            if (studioServerOnline) {
+                const a = document.createElement('a');
+                a.href = STUDIO_API + '/video/' + studioSelectedId;
+                a.download = '';
+                a.click();
+                statusEl.innerHTML = '<span style="color:var(--green);">Downloading original...</span>';
+            } else {
+                statusEl.innerHTML = '<span style="color:var(--red);">Local server required for downloads</span>';
+            }
+            return;
+        }
+
+        if (!studioServerOnline) {
+            statusEl.innerHTML = '<span style="color:var(--red);">Local server required. Run: python3 studio_server.py</span>';
+            return;
+        }
+
+        statusEl.innerHTML = `<span style="color:var(--orange);">Converting to ${ratio} (${width}×${height})...</span>`;
+
+        try {
+            const resp = await fetch(STUDIO_API + '/download-convert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: studioSelectedId, ratio, width: parseInt(width), height: parseInt(height) })
+            });
+            const data = await resp.json();
+            if (data.file) {
+                const a = document.createElement('a');
+                a.href = STUDIO_API + data.file;
+                a.download = '';
+                a.click();
+                statusEl.innerHTML = `<span style="color:var(--green);">Download ready — ${ratio} (${width}×${height})</span>`;
+            } else {
+                statusEl.innerHTML = `<span style="color:var(--red);">Error: ${data.error || 'conversion failed'}</span>`;
+            }
+        } catch (err) {
+            statusEl.innerHTML = `<span style="color:var(--red);">Download failed: ${err.message}</span>`;
+        }
     }
 
     async function studioExportStory() {

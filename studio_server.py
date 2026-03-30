@@ -190,6 +190,71 @@ class StudioHandler(BaseHTTPRequestHandler):
 
             self._json_response({"status": "updated", "queue": queue})
 
+        elif path == "/download-convert":
+            content_id = body.get("id")
+            ratio = body.get("ratio", "9:16")
+            target_w = body.get("width", 1080)
+            target_h = body.get("height", 1920)
+
+            with open(QUEUE_FILE) as f:
+                queue = json.load(f)
+            entry = next((i for i in queue if i["id"] == content_id), None)
+            if not entry:
+                self._json_response({"error": "content not found"}, 404)
+                return
+
+            filepath = entry["path"]
+            if not os.path.exists(filepath):
+                self._json_response({"error": "video file not found"}, 404)
+                return
+
+            export_dir = DIR / "data" / "exports" / content_id
+            export_dir.mkdir(parents=True, exist_ok=True)
+
+            src_w = entry.get("width", 0) or 1920
+            src_h = entry.get("height", 0) or 1080
+            ratio_tag = ratio.replace(":", "x")
+            out_file = export_dir / f"{Path(filepath).stem}_{ratio_tag}_{target_w}x{target_h}.mp4"
+
+            # Build smart crop/scale filter
+            src_aspect = src_w / src_h if src_h else 1
+            tgt_aspect = target_w / target_h if target_h else 1
+
+            if abs(src_aspect - tgt_aspect) < 0.05:
+                # Same aspect — just scale
+                vf = f"scale={target_w}:{target_h}"
+            elif src_aspect > tgt_aspect:
+                # Source is wider — crop sides
+                vf = f"crop=ih*{target_w}/{target_h}:ih,scale={target_w}:{target_h}"
+            else:
+                # Source is taller — crop top/bottom
+                vf = f"crop=iw:iw*{target_h}/{target_w},scale={target_w}:{target_h}"
+
+            cmd = [
+                "ffmpeg", "-y", "-i", filepath,
+                "-vf", vf,
+                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart",
+                str(out_file)
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, timeout=600)
+            if out_file.exists():
+                rel_path = f"/export-file/{content_id}/{out_file.name}"
+                self._json_response({
+                    "status": "converted",
+                    "file": rel_path,
+                    "ratio": ratio,
+                    "resolution": f"{target_w}x{target_h}",
+                    "size": f"{os.path.getsize(out_file) / 1_000_000:.1f} MB"
+                })
+            else:
+                self._json_response({
+                    "error": "conversion failed",
+                    "stderr": result.stderr.decode()[-500:]
+                }, 500)
+
         elif path == "/export-story":
             content_id = body.get("id")
             platforms = body.get("platforms", ["instagram", "tiktok", "youtube"])
