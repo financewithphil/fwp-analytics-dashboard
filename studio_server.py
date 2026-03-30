@@ -57,6 +57,25 @@ class StudioHandler(BaseHTTPRequestHandler):
             with open(ANALYSIS_FILE) as f:
                 self._json_response(json.load(f))
 
+        elif path.startswith("/frame/"):
+            # Serve extracted frame images
+            parts = path.split("/frame/", 1)[1]  # content_id/frame_00.jpg
+            frame_path = DIR / "data" / "frames" / parts
+            if not frame_path.exists():
+                self.send_response(404)
+                self._cors()
+                self.end_headers()
+                return
+            file_size = os.path.getsize(frame_path)
+            self.send_response(200)
+            self._cors()
+            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Content-Length", str(file_size))
+            self.send_header("Cache-Control", "max-age=86400")
+            self.end_headers()
+            with open(frame_path, "rb") as f:
+                self.wfile.write(f.read())
+
         elif path.startswith("/export-file/"):
             # Serve exported story files for download
             rel_path = path.split("/export-file/", 1)[1]
@@ -189,6 +208,77 @@ class StudioHandler(BaseHTTPRequestHandler):
                 json.dump(queue, f, indent=2)
 
             self._json_response({"status": "updated", "queue": queue})
+
+        elif path == "/generate-cover":
+            content_id = body.get("id")
+            timestamp = body.get("timestamp", 0)
+            ratio = body.get("ratio", "9:16")
+            target_w = body.get("width", 1080)
+            target_h = body.get("height", 1920)
+
+            with open(QUEUE_FILE) as f:
+                queue = json.load(f)
+            entry = next((i for i in queue if i["id"] == content_id), None)
+            if not entry:
+                self._json_response({"error": "content not found"}, 404)
+                return
+
+            filepath = entry["path"]
+            if not os.path.exists(filepath):
+                self._json_response({"error": "video file not found"}, 404)
+                return
+
+            export_dir = DIR / "data" / "exports" / content_id / "covers"
+            export_dir.mkdir(parents=True, exist_ok=True)
+
+            ratio_tag = ratio.replace(":", "x")
+            ts_tag = f"{int(timestamp)}s"
+            out_file = export_dir / f"cover_{ratio_tag}_{target_w}x{target_h}_{ts_tag}.jpg"
+            preview_file = export_dir / f"cover_{ratio_tag}_preview_{ts_tag}.jpg"
+
+            src_w = entry.get("width", 0) or 1920
+            src_h = entry.get("height", 0) or 1080
+            src_aspect = src_w / src_h if src_h else 1
+            tgt_aspect = target_w / target_h if target_h else 1
+
+            if abs(src_aspect - tgt_aspect) < 0.05:
+                vf = f"scale={target_w}:{target_h}"
+            elif src_aspect > tgt_aspect:
+                vf = f"crop=ih*{target_w}/{target_h}:ih,scale={target_w}:{target_h}"
+            else:
+                vf = f"crop=iw:iw*{target_h}/{target_w},scale={target_w}:{target_h}"
+
+            # Full resolution cover
+            cmd = [
+                "ffmpeg", "-y", "-ss", str(timestamp), "-i", filepath,
+                "-vframes", "1", "-vf", vf,
+                "-q:v", "2",
+                str(out_file)
+            ]
+            subprocess.run(cmd, capture_output=True, timeout=30)
+
+            # Small preview
+            preview_vf = vf + f",scale={min(target_w, 400)}:-1"
+            cmd_preview = [
+                "ffmpeg", "-y", "-ss", str(timestamp), "-i", filepath,
+                "-vframes", "1", "-vf", preview_vf,
+                "-q:v", "3",
+                str(preview_file)
+            ]
+            subprocess.run(cmd_preview, capture_output=True, timeout=30)
+
+            if out_file.exists():
+                self._json_response({
+                    "status": "generated",
+                    "file": f"/export-file/{content_id}/covers/{out_file.name}",
+                    "preview": f"/export-file/{content_id}/covers/{preview_file.name}",
+                    "ratio": ratio,
+                    "resolution": f"{target_w}x{target_h}",
+                    "timestamp": round(timestamp, 1),
+                    "size": f"{os.path.getsize(out_file) / 1_000:.0f} KB"
+                })
+            else:
+                self._json_response({"error": "cover generation failed"}, 500)
 
         elif path == "/download-convert":
             content_id = body.get("id")

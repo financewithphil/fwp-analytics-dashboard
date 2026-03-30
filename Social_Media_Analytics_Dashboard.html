@@ -1424,8 +1424,31 @@
                                 <span style="color:var(--text-muted);">No thumbnail</span>
                             </div>
                         </div>
+                        <!-- Cover Photo Generator -->
+                        <div style="margin-top:12px;background:var(--bg-input);border-radius:8px;padding:10px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                <span style="font-size:0.8rem;color:var(--accent-light);font-weight:600;">Cover Photo</span>
+                                <select id="cover-ratio" style="background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);padding:3px 8px;font-size:0.75rem;">
+                                    <option value="9:16|1080|1920">9:16 Vertical</option>
+                                    <option value="4:5|1080|1350">4:5 IG Feed</option>
+                                    <option value="1:1|1080|1080">1:1 Square</option>
+                                    <option value="16:9|1920|1080">16:9 Landscape</option>
+                                </select>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                                <span style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">Time:</span>
+                                <input type="range" id="cover-time-slider" min="0" max="100" value="0" style="flex:1;accent-color:var(--accent);" oninput="updateCoverTimeLabel()">
+                                <span id="cover-time-label" style="font-size:0.75rem;color:var(--text-secondary);min-width:35px;">0:00</span>
+                            </div>
+                            <div style="display:flex;gap:4px;">
+                                <button class="btn btn-secondary" onclick="captureCoverFromVideo()" style="padding:4px 10px;font-size:0.75rem;flex:1;">Capture Frame</button>
+                                <button class="btn btn-primary" onclick="generateCover()" style="padding:4px 10px;font-size:0.75rem;flex:1;">Generate & Download</button>
+                            </div>
+                            <div id="cover-preview" style="margin-top:8px;border-radius:6px;overflow:hidden;display:none;"></div>
+                        </div>
                         <div id="studio-meta" style="font-size:0.85rem;color:var(--text-secondary);margin-top:12px;"></div>
-                        <div id="studio-frames" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;"></div>
+                        <div id="studio-frames-label" style="font-size:0.8rem;color:var(--accent-light);font-weight:600;margin-top:12px;margin-bottom:4px;">Key Frames <span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;">(click to set as cover)</span></div>
+                        <div id="studio-frames" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;"></div>
                     </div>
                     <!-- Right: Analysis + Captions + Publish -->
                     <div>
@@ -3787,9 +3810,27 @@ ${rev?.deals?.length > 0 ? 'REVENUE DEALS\n' + rev.deals.map(d => `  ${d.date} |
             </div>
         `;
 
-        // Frames
+        // Frames — load from server if available
         const framesEl = document.getElementById('studio-frames');
-        framesEl.innerHTML = '';
+        if (studioServerOnline) {
+            framesEl.innerHTML = [0,1,2,3].map(i =>
+                `<img src="${STUDIO_API}/frame/${item.id}/frame_${String(i).padStart(2,'0')}.jpg"
+                    style="width:100%;border-radius:4px;aspect-ratio:16/9;object-fit:cover;background:var(--bg-primary);"
+                    onerror="this.style.display='none'">`
+            ).join('');
+            setTimeout(renderFrameClickHandlers, 200);
+        } else {
+            framesEl.innerHTML = '';
+        }
+
+        // Time slider init
+        const slider = document.getElementById('cover-time-slider');
+        if (slider) {
+            slider.max = 100;
+            slider.value = 0;
+            updateCoverTimeLabel();
+        }
+        document.getElementById('cover-preview').style.display = 'none';
 
         // Analysis
         const analysisEl = document.getElementById('studio-analysis-content');
@@ -4043,6 +4084,114 @@ ${rev?.deals?.length > 0 ? 'REVENUE DEALS\n' + rev.deals.map(d => `  ${d.date} |
     function studioFilesAdded(files) {
         if (!files || files.length === 0) return;
         alert(`To add ${files.length} file(s) to the content queue:\n\n1. Copy them to your Content Studio folder\n2. Click "Scan Folder" to detect them\n\nDrag-and-drop upload requires the local server to be running.`);
+    }
+
+    function updateCoverTimeLabel() {
+        const slider = document.getElementById('cover-time-slider');
+        const item = (store.contentQueue || []).find(i => i.id === studioSelectedId);
+        if (!item || !slider) return;
+        const dur = item.durationSecs || 0;
+        const secs = (slider.value / 100) * dur;
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        document.getElementById('cover-time-label').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function captureCoverFromVideo() {
+        // Try to capture current frame from the video player
+        const video = document.querySelector('#studio-preview-wrap video') || document.querySelector('#studio-iphone-screen video');
+        const preview = document.getElementById('cover-preview');
+        if (!video) {
+            document.getElementById('studio-publish-status').innerHTML = '<span style="color:var(--red);">No video player active</span>';
+            return;
+        }
+        // Update slider to match video position
+        const item = (store.contentQueue || []).find(i => i.id === studioSelectedId);
+        if (item && item.durationSecs) {
+            document.getElementById('cover-time-slider').value = (video.currentTime / item.durationSecs) * 100;
+            updateCoverTimeLabel();
+        }
+        // Canvas capture
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        preview.innerHTML = `<img src="${canvas.toDataURL('image/jpeg', 0.9)}" style="width:100%;border-radius:4px;">`;
+        preview.style.display = 'block';
+    }
+
+    async function generateCover() {
+        if (!studioSelectedId || !studioServerOnline) {
+            document.getElementById('studio-publish-status').innerHTML = '<span style="color:var(--red);">Local server required for cover generation</span>';
+            return;
+        }
+
+        const item = (store.contentQueue || []).find(i => i.id === studioSelectedId);
+        if (!item) return;
+
+        const slider = document.getElementById('cover-time-slider');
+        const ratioSelect = document.getElementById('cover-ratio');
+        const [ratio, width, height] = ratioSelect.value.split('|');
+        const dur = item.durationSecs || 0;
+        const timestamp = (slider.value / 100) * dur;
+
+        const statusEl = document.getElementById('studio-publish-status');
+        statusEl.innerHTML = `<span style="color:var(--orange);">Generating ${ratio} cover at ${Math.floor(timestamp / 60)}:${Math.floor(timestamp % 60).toString().padStart(2, '0')}...</span>`;
+
+        try {
+            const resp = await fetch(STUDIO_API + '/generate-cover', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: studioSelectedId,
+                    timestamp: timestamp,
+                    ratio: ratio,
+                    width: parseInt(width),
+                    height: parseInt(height)
+                })
+            });
+            const data = await resp.json();
+            if (data.file) {
+                // Show preview
+                const preview = document.getElementById('cover-preview');
+                preview.innerHTML = `<img src="${STUDIO_API}${data.preview}" style="width:100%;border-radius:4px;">`;
+                preview.style.display = 'block';
+                // Auto-download
+                const a = document.createElement('a');
+                a.href = STUDIO_API + data.file;
+                a.download = '';
+                a.click();
+                statusEl.innerHTML = `<span style="color:var(--green);">Cover photo downloaded — ${ratio} (${width}×${height})</span>`;
+            } else {
+                statusEl.innerHTML = `<span style="color:var(--red);">Error: ${data.error || 'generation failed'}</span>`;
+            }
+        } catch (err) {
+            statusEl.innerHTML = `<span style="color:var(--red);">Cover generation failed: ${err.message}</span>`;
+        }
+    }
+
+    // Wire key frames as clickable cover selectors
+    function renderFrameClickHandlers() {
+        document.querySelectorAll('#studio-frames img').forEach((img, i) => {
+            img.style.cursor = 'pointer';
+            img.style.border = '2px solid transparent';
+            img.style.borderRadius = '4px';
+            img.style.transition = 'border-color 0.2s';
+            img.onmouseover = () => img.style.borderColor = 'var(--accent)';
+            img.onmouseout = () => img.style.borderColor = 'transparent';
+            img.onclick = () => {
+                const item = (store.contentQueue || []).find(it => it.id === studioSelectedId);
+                if (!item) return;
+                const dur = item.durationSecs || 0;
+                // Frames are at 0.5s, dur/4, dur/2, dur*3/4
+                const offsets = [0.5, dur / 4, dur / 2, dur * 3 / 4];
+                const t = offsets[i] || 0;
+                document.getElementById('cover-time-slider').value = (t / dur) * 100;
+                updateCoverTimeLabel();
+                document.getElementById('cover-preview').innerHTML = `<img src="${img.src}" style="width:100%;border-radius:4px;">`;
+                document.getElementById('cover-preview').style.display = 'block';
+            };
+        });
     }
 
     function toggleDownloadMenu() {
