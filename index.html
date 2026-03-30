@@ -801,6 +801,31 @@
         .tag-med { background: rgba(253, 203, 110, 0.2); color: var(--orange); }
         .tag-low { background: rgba(0, 206, 201, 0.2); color: var(--green); }
 
+        /* Content Studio */
+        .pipeline-lane { flex:1; min-width:220px; max-width:280px; background:var(--bg-card); border-radius:var(--radius); border:1px solid var(--border); padding:12px; max-height:500px; display:flex; flex-direction:column; }
+        .pipeline-lane-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+        .pipeline-lane-header h4 { font-size:0.85rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; }
+        .pipeline-lane-count { background:var(--accent); color:white; font-size:0.7rem; padding:2px 8px; border-radius:10px; font-weight:600; }
+        .pipeline-lane-body { overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px; }
+        .video-card { background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:8px; cursor:pointer; transition:all 0.2s; position:relative; }
+        .video-card:hover { border-color:var(--accent); background:var(--bg-card-hover); }
+        .video-card.selected { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-glow); }
+        .video-card-thumb { width:100%; aspect-ratio:9/16; background:var(--bg-primary); border-radius:6px; overflow:hidden; margin-bottom:6px; display:flex; align-items:center; justify-content:center; }
+        .video-card-thumb img { width:100%; height:100%; object-fit:cover; }
+        .video-card-duration { position:absolute; top:14px; right:14px; background:rgba(0,0,0,0.8); color:white; font-size:0.7rem; padding:2px 6px; border-radius:4px; font-weight:600; }
+        .video-card-name { font-size:0.8rem; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .video-card-date { font-size:0.7rem; color:var(--text-muted); }
+        .video-card-platforms { display:flex; gap:3px; margin-top:4px; }
+        .video-card-platforms .platform-badge { font-size:0.6rem; padding:1px 5px; }
+        .score-bar { height:8px; background:var(--bg-input); border-radius:4px; overflow:hidden; flex:1; }
+        .score-bar-fill { height:100%; border-radius:4px; transition:width 0.3s; }
+        .studio-cap-tab.active { background:var(--accent) !important; color:white !important; }
+        .status-inbox { color:var(--text-muted); }
+        .status-analyzed { color:var(--blue); }
+        .status-captioned { color:var(--orange); }
+        .status-ready { color:var(--green); }
+        .status-posted { color:var(--accent-light); }
+
         /* PIN Wall */
         .pin-wall {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -947,6 +972,7 @@
             <button class="nav-tab" onclick="showPage('thumbnails')">Thumbnails</button>
             <button class="nav-tab" onclick="showPage('calendar')">Content Calendar</button>
             <button class="nav-tab" onclick="showPage('manychat')">ManyChat Flows</button>
+            <button class="nav-tab" onclick="showPage('studio')">Content Studio</button>
         </nav>
 
         <!-- ==================== OVERVIEW PAGE ==================== -->
@@ -1339,6 +1365,118 @@
 
             <div id="manychat-flows"></div>
         </div>
+
+        <!-- ==================== CONTENT STUDIO PAGE ==================== -->
+        <div id="page-studio" class="page">
+            <div class="section-header">
+                <h2>Content Studio</h2>
+                <div class="flex gap-1" style="align-items:center; flex-wrap:wrap;">
+                    <div id="studio-server-status" style="font-size:0.75rem;padding:4px 10px;border-radius:6px;background:var(--red-bg);color:var(--red);">Server Offline</div>
+                    <input type="text" id="studio-search" placeholder="Search content..." style="width:180px;" oninput="renderStudio()">
+                    <select id="studio-filter-status" onchange="renderStudio()">
+                        <option value="all">All Status</option>
+                        <option value="inbox">Inbox</option>
+                        <option value="analyzed">Analyzed</option>
+                        <option value="captioned">Captioned</option>
+                        <option value="ready">Ready</option>
+                        <option value="posted">Posted</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="studioScanFolder()">Scan Folder</button>
+                    <button class="btn btn-primary" onclick="document.getElementById('studio-file-input').click()">+ Add Content</button>
+                    <input type="file" id="studio-file-input" multiple accept="video/*" style="display:none;" onchange="studioFilesAdded(this.files)">
+                </div>
+            </div>
+
+            <!-- KPI row -->
+            <div class="kpi-row" id="studio-kpis"></div>
+
+            <!-- Pipeline view -->
+            <div id="studio-pipeline" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:12px;min-height:300px;"></div>
+
+            <!-- Detail panel -->
+            <div id="studio-detail" class="post-entry-card" style="display:none;margin-top:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h3 id="studio-detail-title" style="font-size:1.1rem;"></h3>
+                    <button class="btn btn-secondary" onclick="closeStudioDetail()" style="padding:4px 12px;">✕ Close</button>
+                </div>
+                <div style="display:grid;grid-template-columns:300px 1fr;gap:20px;">
+                    <!-- Left: Video preview + metadata -->
+                    <div>
+                        <div id="studio-thumb" style="width:100%;aspect-ratio:9/16;background:var(--bg-input);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+                            <span style="color:var(--text-muted);">No thumbnail</span>
+                        </div>
+                        <div id="studio-meta" style="font-size:0.85rem;color:var(--text-secondary);"></div>
+                        <div id="studio-frames" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;"></div>
+                    </div>
+                    <!-- Right: Analysis + Captions + Publish -->
+                    <div>
+                        <!-- Analysis -->
+                        <div id="studio-analysis" style="margin-bottom:16px;">
+                            <h4 style="margin-bottom:8px;color:var(--accent-light);">Analysis</h4>
+                            <div id="studio-analysis-content" style="color:var(--text-secondary);font-size:0.9rem;">
+                                Not yet analyzed. Run analysis in a Claude Code session to populate.
+                            </div>
+                        </div>
+
+                        <!-- Caption Editor -->
+                        <div style="margin-bottom:16px;">
+                            <h4 style="margin-bottom:8px;color:var(--accent-light);">Captions</h4>
+                            <div style="display:flex;gap:4px;margin-bottom:8px;">
+                                <button class="btn btn-secondary studio-cap-tab active" onclick="switchCaptionTab('instagram')" data-plat="instagram" style="padding:4px 12px;font-size:0.8rem;">IG</button>
+                                <button class="btn btn-secondary studio-cap-tab" onclick="switchCaptionTab('tiktok')" data-plat="tiktok" style="padding:4px 12px;font-size:0.8rem;">TT</button>
+                                <button class="btn btn-secondary studio-cap-tab" onclick="switchCaptionTab('youtube')" data-plat="youtube" style="padding:4px 12px;font-size:0.8rem;">YT</button>
+                                <button class="btn btn-secondary studio-cap-tab" onclick="switchCaptionTab('threads')" data-plat="threads" style="padding:4px 12px;font-size:0.8rem;">TH</button>
+                                <button class="btn btn-secondary" onclick="copyCaptionToAll()" style="padding:4px 12px;font-size:0.8rem;margin-left:auto;">Copy to All</button>
+                            </div>
+                            <textarea id="studio-caption-editor" rows="5" style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);padding:10px;font-size:0.9rem;resize:vertical;" placeholder="Write caption for this platform..."></textarea>
+                            <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                                <span id="studio-caption-count" style="font-size:0.75rem;color:var(--text-muted);">0 chars</span>
+                                <button class="btn btn-secondary" onclick="saveCaptions()" style="padding:4px 16px;font-size:0.85rem;">Save Captions</button>
+                            </div>
+                        </div>
+
+                        <!-- Platform selection + Publish -->
+                        <div>
+                            <h4 style="margin-bottom:8px;color:var(--accent-light);">Publish</h4>
+                            <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                                    <input type="checkbox" id="pub-ig" class="pub-check" value="instagram"> <span class="platform-badge badge-ig">IG</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                                    <input type="checkbox" id="pub-tt" class="pub-check" value="tiktok"> <span class="platform-badge badge-tt">TT</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                                    <input type="checkbox" id="pub-yt" class="pub-check" value="youtube"> <span class="platform-badge badge-yt">YT</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                                    <input type="checkbox" id="pub-th" class="pub-check" value="threads"> <span class="platform-badge badge-th">TH</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:8px;">
+                                    <input type="checkbox" id="pub-all" onchange="toggleAllPlatforms(this.checked)"> All
+                                </label>
+                            </div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <button class="btn btn-primary" onclick="studioPublish()" style="padding:8px 24px;">Post Now</button>
+                                <button class="btn btn-secondary" onclick="studioMarkReady()">Mark Ready</button>
+                                <button class="btn btn-secondary" onclick="studioDelete()" style="color:var(--red);">Delete</button>
+                            </div>
+                            <div id="studio-publish-status" style="margin-top:8px;font-size:0.85rem;color:var(--text-muted);"></div>
+                            <div id="studio-posted-to" style="margin-top:8px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Folder config -->
+            <div style="margin-top:16px;padding:12px;background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span style="color:var(--text-secondary);font-size:0.85rem;">Content Folder:</span>
+                    <input type="text" id="studio-folder-path" value="" placeholder="~/Content Studio/" style="flex:1;min-width:200px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);padding:6px 10px;font-size:0.85rem;">
+                    <button class="btn btn-secondary" onclick="studioScanFolder()" style="padding:6px 16px;font-size:0.85rem;">Scan</button>
+                    <span style="color:var(--text-muted);font-size:0.75rem;">Start local server: <code style="background:var(--bg-input);padding:2px 6px;border-radius:4px;">python3 studio_server.py</code></span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ==================== MODALS ==================== -->
@@ -1372,6 +1510,8 @@
             creators: [],
             calendar: [],
             flows: getDefaultFlows(),
+            contentQueue: [],
+            contentAnalysis: {},
         };
     }
 
@@ -1409,14 +1549,19 @@
         if (btn) { btn.classList.add('loading'); btn.innerHTML = '&#x21bb; Loading...'; }
 
         try {
-            const [igPosts, ttPosts, ytPosts, thPosts, comments, state] = await Promise.all([
+            const [igPosts, ttPosts, ytPosts, thPosts, comments, state, contentQueue, contentAnalysis] = await Promise.all([
                 fetchJSON(DATA_BASE + 'instagram_posts.json'),
                 fetchJSON(DATA_BASE + 'tiktok_posts.json'),
                 fetchJSON(DATA_BASE + 'youtube_posts.json'),
                 fetchJSON(DATA_BASE + 'threads_posts.json'),
                 fetchJSON(DATA_BASE + 'comments.json'),
                 fetchJSON(DATA_BASE + 'scrape_state.json'),
+                fetchJSON(DATA_BASE + 'content_queue.json'),
+                fetchJSON(DATA_BASE + 'content_analysis.json'),
             ]);
+
+            store.contentQueue = Array.isArray(contentQueue) ? contentQueue : [];
+            store.contentAnalysis = contentAnalysis && typeof contentAnalysis === 'object' ? contentAnalysis : {};
 
             scrapeState = state;
 
@@ -1519,7 +1664,8 @@
             insights: renderInsights,
             creators: renderCreators,
             calendar: renderCalendar,
-            manychat: renderManyChat
+            manychat: renderManyChat,
+            studio: renderStudio
         };
         if (renderers[activePage]) renderers[activePage]();
     }
@@ -1660,7 +1806,8 @@
             creators: renderCreators,
             thumbnails: () => {},
             calendar: renderCalendar,
-            manychat: renderManyChat
+            manychat: renderManyChat,
+            studio: renderStudio
         };
         if (renderers[page]) renderers[page]();
     }
@@ -3462,6 +3609,391 @@ ${rev?.deals?.length > 0 ? 'REVENUE DEALS\n' + rev.deals.map(d => `  ${d.date} |
             threads: store.profiles.threads?.followers || 0,
         });
         localStorage.setItem('fwp_follower_history', JSON.stringify(history));
+    }
+
+    // ============================================================
+    // CONTENT STUDIO
+    // ============================================================
+    const STUDIO_API = 'http://localhost:5555';
+    let studioServerOnline = false;
+    let studioSelectedId = null;
+    let studioCurrentPlatform = 'instagram';
+
+    // Check if local studio server is running
+    async function checkStudioServer() {
+        try {
+            const resp = await fetch(STUDIO_API + '/health', { signal: AbortSignal.timeout(2000) });
+            const data = await resp.json();
+            studioServerOnline = data.status === 'ok';
+        } catch { studioServerOnline = false; }
+        const el = document.getElementById('studio-server-status');
+        if (el) {
+            el.style.background = studioServerOnline ? 'var(--green-bg)' : 'var(--red-bg)';
+            el.style.color = studioServerOnline ? 'var(--green)' : 'var(--red)';
+            el.textContent = studioServerOnline ? 'Server Online' : 'Server Offline';
+        }
+    }
+
+    function renderStudio() {
+        checkStudioServer();
+        const queue = store.contentQueue || [];
+        const search = (document.getElementById('studio-search')?.value || '').toLowerCase();
+        const statusFilter = document.getElementById('studio-filter-status')?.value || 'all';
+
+        const filtered = queue.filter(item => {
+            if (statusFilter !== 'all' && item.status !== statusFilter) return false;
+            if (search && !item.filename.toLowerCase().includes(search)) return false;
+            return true;
+        });
+
+        // KPIs
+        const kpis = document.getElementById('studio-kpis');
+        if (kpis) {
+            const total = queue.length;
+            const byStatus = { inbox: 0, analyzed: 0, captioned: 0, ready: 0, posted: 0 };
+            queue.forEach(i => { byStatus[i.status] = (byStatus[i.status] || 0) + 1; });
+            const today = new Date().toISOString().slice(0, 10);
+            const postedToday = queue.filter(i => i.status === 'posted' && Object.values(i.postedTo || {}).some(p => p.date?.startsWith(today))).length;
+
+            kpis.innerHTML = `
+                <div class="kpi-card"><div class="kpi-value">${total}</div><div class="kpi-label">Total in Pipeline</div></div>
+                <div class="kpi-card"><div class="kpi-value status-inbox">${byStatus.inbox}</div><div class="kpi-label">Inbox</div></div>
+                <div class="kpi-card"><div class="kpi-value status-analyzed">${byStatus.analyzed}</div><div class="kpi-label">Analyzed</div></div>
+                <div class="kpi-card"><div class="kpi-value status-captioned">${byStatus.captioned}</div><div class="kpi-label">Captioned</div></div>
+                <div class="kpi-card"><div class="kpi-value status-ready">${byStatus.ready}</div><div class="kpi-label">Ready to Post</div></div>
+                <div class="kpi-card"><div class="kpi-value status-posted">${postedToday}</div><div class="kpi-label">Posted Today</div></div>
+            `;
+        }
+
+        // Pipeline lanes
+        const pipeline = document.getElementById('studio-pipeline');
+        if (!pipeline) return;
+
+        const lanes = ['inbox', 'analyzed', 'captioned', 'ready', 'posted'];
+        const laneLabels = { inbox: 'Inbox', analyzed: 'Analyzed', captioned: 'Captioned', ready: 'Ready', posted: 'Posted' };
+        const laneColors = { inbox: 'var(--text-muted)', analyzed: 'var(--blue)', captioned: 'var(--orange)', ready: 'var(--green)', posted: 'var(--accent-light)' };
+
+        pipeline.innerHTML = lanes.map(status => {
+            const items = filtered.filter(i => i.status === status);
+            return `
+                <div class="pipeline-lane">
+                    <div class="pipeline-lane-header">
+                        <h4 style="color:${laneColors[status]}">${laneLabels[status]}</h4>
+                        <span class="pipeline-lane-count">${items.length}</span>
+                    </div>
+                    <div class="pipeline-lane-body">
+                        ${items.length === 0 ? '<div style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:20px 0;">Empty</div>' :
+                        items.map(item => `
+                            <div class="video-card ${studioSelectedId === item.id ? 'selected' : ''}" onclick="showContentDetail('${item.id}')">
+                                <div class="video-card-thumb">
+                                    ${item.thumbnail ? `<img src="data:image/jpeg;base64,${item.thumbnail}" alt="${item.filename}">` :
+                                    '<span style="color:var(--text-muted);font-size:2rem;">&#127909;</span>'}
+                                </div>
+                                ${item.duration ? `<div class="video-card-duration">${item.duration}</div>` : ''}
+                                <div class="video-card-name" title="${item.filename}">${item.filename}</div>
+                                <div class="video-card-date">${item.addedDate || ''} · ${item.fileSize || ''}</div>
+                                <div class="video-card-platforms">
+                                    ${(item.platforms || []).map(p => platformBadge(p)).join('')}
+                                    ${Object.keys(item.postedTo || {}).map(p => `<span class="platform-badge" style="background:var(--green-bg);color:var(--green);font-size:0.6rem;padding:1px 5px;">${p.slice(0,2).toUpperCase()} ✓</span>`).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Restore folder path from localStorage
+        const folderInput = document.getElementById('studio-folder-path');
+        if (folderInput && !folderInput.value) {
+            folderInput.value = localStorage.getItem('fwp_studio_folder') || '~/Content Studio/';
+        }
+    }
+
+    function showContentDetail(id) {
+        studioSelectedId = id;
+        const item = (store.contentQueue || []).find(i => i.id === id);
+        if (!item) return;
+
+        document.getElementById('studio-detail').style.display = 'block';
+        document.getElementById('studio-detail-title').textContent = item.filename;
+
+        // Thumbnail
+        const thumbEl = document.getElementById('studio-thumb');
+        if (item.thumbnail) {
+            thumbEl.innerHTML = `<img src="data:image/jpeg;base64,${item.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
+        } else {
+            thumbEl.innerHTML = '<span style="color:var(--text-muted);font-size:3rem;">&#127909;</span>';
+        }
+
+        // Metadata
+        document.getElementById('studio-meta').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                <div>Duration: <strong>${item.duration || 'N/A'}</strong></div>
+                <div>Resolution: <strong>${item.resolution || 'N/A'}</strong></div>
+                <div>Size: <strong>${item.fileSize || 'N/A'}</strong></div>
+                <div>Codec: <strong>${item.codec || 'N/A'}</strong></div>
+                <div>Added: <strong>${item.addedDate || 'N/A'}</strong></div>
+                <div>Status: <strong class="status-${item.status}">${item.status}</strong></div>
+            </div>
+        `;
+
+        // Frames
+        const framesEl = document.getElementById('studio-frames');
+        framesEl.innerHTML = '';
+
+        // Analysis
+        const analysisEl = document.getElementById('studio-analysis-content');
+        if (item.analysis) {
+            const a = item.analysis;
+            analysisEl.innerHTML = `
+                <div style="display:grid;gap:10px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="width:80px;font-size:0.8rem;">Hook</span>
+                        <div class="score-bar"><div class="score-bar-fill" style="width:${(a.hookScore||0)*10}%;background:${a.hookScore >= 7 ? 'var(--green)' : a.hookScore >= 4 ? 'var(--orange)' : 'var(--red)'}"></div></div>
+                        <span style="font-weight:600;width:30px;text-align:right;">${a.hookScore || 0}/10</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="width:80px;font-size:0.8rem;">Viral</span>
+                        <div class="score-bar"><div class="score-bar-fill" style="width:${(a.viralScore||0)*10}%;background:${a.viralScore >= 7 ? 'var(--green)' : a.viralScore >= 4 ? 'var(--orange)' : 'var(--red)'}"></div></div>
+                        <span style="font-weight:600;width:30px;text-align:right;">${a.viralScore || 0}/10</span>
+                    </div>
+                    ${a.hookType ? `<div><span style="font-size:0.8rem;color:var(--text-muted);">Hook Type:</span> <span class="tag tag-blue">${a.hookType}</span></div>` : ''}
+                    ${a.strengths ? `<div><span style="font-size:0.8rem;color:var(--green);">Strengths:</span><ul style="margin:4px 0 0 16px;font-size:0.85rem;">${a.strengths.map(s => `<li>${s}</li>`).join('')}</ul></div>` : ''}
+                    ${a.improvements ? `<div><span style="font-size:0.8rem;color:var(--orange);">Improvements:</span><ul style="margin:4px 0 0 16px;font-size:0.85rem;">${a.improvements.map(s => `<li>${s}</li>`).join('')}</ul></div>` : ''}
+                </div>
+            `;
+        } else {
+            analysisEl.innerHTML = 'Not yet analyzed. Run analysis in a Claude Code session to review this video.';
+        }
+
+        // Caption editor
+        studioCurrentPlatform = 'instagram';
+        updateCaptionEditor(item);
+
+        // Platform checkboxes
+        ['ig', 'tt', 'yt', 'th'].forEach(p => {
+            const map = { ig: 'instagram', tt: 'tiktok', yt: 'youtube', th: 'threads' };
+            const cb = document.getElementById('pub-' + p);
+            if (cb) cb.checked = (item.platforms || []).includes(map[p]);
+        });
+
+        // Posted to
+        const postedEl = document.getElementById('studio-posted-to');
+        const posted = item.postedTo || {};
+        if (Object.keys(posted).length > 0) {
+            postedEl.innerHTML = '<div style="font-size:0.85rem;color:var(--green);">Posted to: ' +
+                Object.entries(posted).map(([p, info]) =>
+                    `<span class="platform-badge" style="background:var(--green-bg);color:var(--green);">${p} (${info.date || ''})</span>`
+                ).join(' ') + '</div>';
+        } else {
+            postedEl.innerHTML = '';
+        }
+
+        // Re-render pipeline to show selection
+        renderStudio();
+        document.getElementById('studio-detail').style.display = 'block';
+    }
+
+    function closeStudioDetail() {
+        studioSelectedId = null;
+        document.getElementById('studio-detail').style.display = 'none';
+    }
+
+    function updateCaptionEditor(item) {
+        const textarea = document.getElementById('studio-caption-editor');
+        if (!textarea) return;
+        textarea.value = (item.captions || {})[studioCurrentPlatform] || '';
+        textarea.oninput = () => {
+            document.getElementById('studio-caption-count').textContent = textarea.value.length + ' chars';
+        };
+        document.getElementById('studio-caption-count').textContent = textarea.value.length + ' chars';
+
+        document.querySelectorAll('.studio-cap-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.plat === studioCurrentPlatform);
+        });
+    }
+
+    function switchCaptionTab(platform) {
+        // Save current caption first
+        saveCaptionLocally();
+        studioCurrentPlatform = platform;
+        const item = (store.contentQueue || []).find(i => i.id === studioSelectedId);
+        if (item) updateCaptionEditor(item);
+    }
+
+    function saveCaptionLocally() {
+        if (!studioSelectedId) return;
+        const item = (store.contentQueue || []).find(i => i.id === studioSelectedId);
+        if (!item) return;
+        const textarea = document.getElementById('studio-caption-editor');
+        if (!item.captions) item.captions = {};
+        item.captions[studioCurrentPlatform] = textarea.value;
+    }
+
+    function copyCaptionToAll() {
+        if (!studioSelectedId) return;
+        const item = (store.contentQueue || []).find(i => i.id === studioSelectedId);
+        if (!item) return;
+        const textarea = document.getElementById('studio-caption-editor');
+        const text = textarea.value;
+        ['instagram', 'tiktok', 'youtube', 'threads'].forEach(p => {
+            if (!item.captions) item.captions = {};
+            item.captions[p] = text;
+        });
+        document.getElementById('studio-publish-status').textContent = 'Caption copied to all platforms';
+        setTimeout(() => { document.getElementById('studio-publish-status').textContent = ''; }, 2000);
+    }
+
+    async function saveCaptions() {
+        saveCaptionLocally();
+        const item = (store.contentQueue || []).find(i => i.id === studioSelectedId);
+        if (!item) return;
+
+        // Update status to captioned if it was inbox/analyzed
+        if (item.status === 'inbox' || item.status === 'analyzed') {
+            item.status = 'captioned';
+        }
+
+        if (studioServerOnline) {
+            await fetch(STUDIO_API + '/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: item.id, updates: { captions: item.captions, status: item.status } })
+            });
+        }
+        renderStudio();
+        document.getElementById('studio-detail').style.display = 'block';
+        document.getElementById('studio-publish-status').textContent = 'Captions saved!';
+        setTimeout(() => { document.getElementById('studio-publish-status').textContent = ''; }, 2000);
+    }
+
+    function toggleAllPlatforms(checked) {
+        ['ig', 'tt', 'yt', 'th'].forEach(p => {
+            const cb = document.getElementById('pub-' + p);
+            if (cb) cb.checked = checked;
+        });
+    }
+
+    async function studioMarkReady() {
+        if (!studioSelectedId) return;
+        const item = (store.contentQueue || []).find(i => i.id === studioSelectedId);
+        if (!item) return;
+
+        // Save platforms
+        const platforms = [];
+        const map = { ig: 'instagram', tt: 'tiktok', yt: 'youtube', th: 'threads' };
+        ['ig', 'tt', 'yt', 'th'].forEach(p => {
+            if (document.getElementById('pub-' + p)?.checked) platforms.push(map[p]);
+        });
+        item.platforms = platforms;
+        item.status = 'ready';
+
+        if (studioServerOnline) {
+            await fetch(STUDIO_API + '/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: item.id, updates: { status: 'ready', platforms } })
+            });
+        }
+        renderStudio();
+        document.getElementById('studio-detail').style.display = 'block';
+    }
+
+    async function studioPublish() {
+        if (!studioSelectedId) return;
+        const item = (store.contentQueue || []).find(i => i.id === studioSelectedId);
+        if (!item) return;
+
+        saveCaptionLocally();
+
+        const platforms = [];
+        const map = { ig: 'instagram', tt: 'tiktok', yt: 'youtube', th: 'threads' };
+        ['ig', 'tt', 'yt', 'th'].forEach(p => {
+            if (document.getElementById('pub-' + p)?.checked) platforms.push(map[p]);
+        });
+
+        if (platforms.length === 0) {
+            document.getElementById('studio-publish-status').innerHTML = '<span style="color:var(--red);">Select at least one platform</span>';
+            return;
+        }
+
+        if (studioServerOnline) {
+            document.getElementById('studio-publish-status').innerHTML = '<span style="color:var(--orange);">Publishing...</span>';
+            for (const plat of platforms) {
+                document.getElementById('studio-publish-status').innerHTML = `<span style="color:var(--orange);">Publishing to ${plat}...</span>`;
+                try {
+                    const resp = await fetch(STUDIO_API + '/publish', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: item.id, platform: plat, caption: item.captions?.[plat] || '' })
+                    });
+                    const data = await resp.json();
+                    if (data.queue) store.contentQueue = data.queue;
+                } catch (err) {
+                    document.getElementById('studio-publish-status').innerHTML = `<span style="color:var(--red);">Error: ${err.message}</span>`;
+                    return;
+                }
+            }
+            document.getElementById('studio-publish-status').innerHTML = '<span style="color:var(--green);">Published successfully!</span>';
+            renderStudio();
+            document.getElementById('studio-detail').style.display = 'block';
+        } else {
+            // Fallback: copy command to clipboard
+            const cmd = `python3 publish.py --id ${item.id} --platform ${platforms.length > 1 ? 'all' : platforms[0]}`;
+            navigator.clipboard.writeText(cmd).then(() => {
+                document.getElementById('studio-publish-status').innerHTML =
+                    `<span style="color:var(--orange);">Server offline. Command copied to clipboard:</span><br><code style="background:var(--bg-input);padding:4px 8px;border-radius:4px;font-size:0.8rem;">${cmd}</code>`;
+            });
+        }
+    }
+
+    async function studioDelete() {
+        if (!studioSelectedId) return;
+        if (!confirm('Remove this content from the queue?')) return;
+
+        if (studioServerOnline) {
+            await fetch(STUDIO_API + '/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: studioSelectedId })
+            });
+        }
+        store.contentQueue = (store.contentQueue || []).filter(i => i.id !== studioSelectedId);
+        studioSelectedId = null;
+        document.getElementById('studio-detail').style.display = 'none';
+        renderStudio();
+    }
+
+    async function studioScanFolder() {
+        const folder = document.getElementById('studio-folder-path')?.value || '~/Content Studio/';
+        localStorage.setItem('fwp_studio_folder', folder);
+
+        if (studioServerOnline) {
+            document.getElementById('studio-publish-status').innerHTML = '<span style="color:var(--orange);">Scanning folder...</span>';
+            try {
+                const resp = await fetch(STUDIO_API + '/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ folder })
+                });
+                const data = await resp.json();
+                if (data.queue) store.contentQueue = data.queue;
+                renderStudio();
+            } catch (err) {
+                document.getElementById('studio-publish-status').innerHTML = `<span style="color:var(--red);">Scan error: ${err.message}</span>`;
+            }
+        } else {
+            const cmd = `python3 content_scan.py --folder "${folder}"`;
+            navigator.clipboard.writeText(cmd).then(() => {
+                alert('Server offline. Scan command copied to clipboard:\n\n' + cmd + '\n\nRun this in terminal, then refresh the dashboard.');
+            });
+        }
+    }
+
+    function studioFilesAdded(files) {
+        if (!files || files.length === 0) return;
+        alert(`To add ${files.length} file(s) to the content queue:\n\n1. Copy them to your Content Studio folder\n2. Click "Scan Folder" to detect them\n\nDrag-and-drop upload requires the local server to be running.`);
     }
 
     // ============================================================
