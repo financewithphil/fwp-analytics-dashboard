@@ -12,6 +12,7 @@ The dashboard auto-detects this server on load.
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -55,6 +56,56 @@ class StudioHandler(BaseHTTPRequestHandler):
         elif path == "/analysis":
             with open(ANALYSIS_FILE) as f:
                 self._json_response(json.load(f))
+
+        elif path.startswith("/video/"):
+            # Serve video file by content ID
+            content_id = path.split("/video/", 1)[1]
+            with open(QUEUE_FILE) as f:
+                queue = json.load(f)
+            entry = next((i for i in queue if i["id"] == content_id), None)
+            if not entry or not os.path.exists(entry["path"]):
+                self._json_response({"error": "video not found"}, 404)
+                return
+
+            filepath = entry["path"]
+            file_size = os.path.getsize(filepath)
+            content_type = "video/mp4"
+            if filepath.endswith(".mov"):
+                content_type = "video/quicktime"
+            elif filepath.endswith(".webm"):
+                content_type = "video/webm"
+
+            # Support range requests for video seeking
+            range_header = self.headers.get("Range")
+            if range_header:
+                byte_range = range_header.strip().split("=")[1]
+                start, end = byte_range.split("-")
+                start = int(start)
+                end = int(end) if end else file_size - 1
+                length = end - start + 1
+
+                self.send_response(206)
+                self._cors()
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
+                self.send_header("Content-Length", str(length))
+                self.send_header("Accept-Ranges", "bytes")
+                self.end_headers()
+
+                with open(filepath, "rb") as f:
+                    f.seek(start)
+                    self.wfile.write(f.read(length))
+            else:
+                self.send_response(200)
+                self._cors()
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(file_size))
+                self.send_header("Accept-Ranges", "bytes")
+                self.end_headers()
+
+                with open(filepath, "rb") as f:
+                    while chunk := f.read(65536):
+                        self.wfile.write(chunk)
 
         else:
             self._json_response({"error": "not found"}, 404)

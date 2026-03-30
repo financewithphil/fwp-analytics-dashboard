@@ -819,7 +819,7 @@
         .video-card-platforms .platform-badge { font-size:0.6rem; padding:1px 5px; }
         .score-bar { height:8px; background:var(--bg-input); border-radius:4px; overflow:hidden; flex:1; }
         .score-bar-fill { height:100%; border-radius:4px; transition:width 0.3s; }
-        .studio-cap-tab.active { background:var(--accent) !important; color:white !important; }
+        .studio-cap-tab.active, .preview-fmt.active { background:var(--accent) !important; color:white !important; }
         .status-inbox { color:var(--text-muted); }
         .status-analyzed { color:var(--blue); }
         .status-captioned { color:var(--orange); }
@@ -959,6 +959,7 @@
                 <button class="btn btn-secondary" onclick="exportAllData()">Export Data</button>
                 <button class="btn btn-secondary" onclick="exportReport()">Export Report</button>
                 <button class="btn btn-primary" onclick="showImportModal()">+ Import Data</button>
+                <a href="http://localhost:8080" id="btn-local-preview" class="btn btn-secondary" style="display:none;background:var(--accent);color:white;text-decoration:none;padding:6px 14px;font-size:0.85rem;" target="_blank">Preview Local</a>
             </div>
         </header>
 
@@ -1402,10 +1403,27 @@
                 <div style="display:grid;grid-template-columns:300px 1fr;gap:20px;">
                     <!-- Left: Video preview + metadata -->
                     <div>
-                        <div id="studio-thumb" style="width:100%;aspect-ratio:9/16;background:var(--bg-input);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
-                            <span style="color:var(--text-muted);">No thumbnail</span>
+                        <!-- Format toggle -->
+                        <div style="display:flex;gap:4px;margin-bottom:8px;">
+                            <button class="btn btn-secondary preview-fmt active" onclick="setPreviewFormat('default')" data-fmt="default" style="padding:4px 10px;font-size:0.75rem;">Default</button>
+                            <button class="btn btn-secondary preview-fmt" onclick="setPreviewFormat('iphone')" data-fmt="iphone" style="padding:4px 10px;font-size:0.75rem;">iPhone</button>
+                            <button class="btn btn-secondary preview-fmt" onclick="setPreviewFormat('iphone-se')" data-fmt="iphone-se" style="padding:4px 10px;font-size:0.75rem;">iPhone SE</button>
+                            <button class="btn btn-secondary preview-fmt" onclick="setPreviewFormat('story')" data-fmt="story" style="padding:4px 10px;font-size:0.75rem;">9:16 Story</button>
                         </div>
-                        <div id="studio-meta" style="font-size:0.85rem;color:var(--text-secondary);"></div>
+                        <div id="studio-preview-wrap" style="position:relative;display:flex;justify-content:center;">
+                            <!-- iPhone frame (hidden by default) -->
+                            <div id="studio-iphone-frame" style="display:none;position:relative;background:#000;border-radius:40px;padding:12px;box-shadow:0 0 0 3px #333,0 8px 40px rgba(0,0,0,0.6);">
+                                <!-- Notch -->
+                                <div id="studio-iphone-notch" style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:28px;background:#000;border-radius:0 0 16px 16px;z-index:2;"></div>
+                                <!-- Screen -->
+                                <div id="studio-iphone-screen" style="border-radius:28px;overflow:hidden;background:#000;"></div>
+                            </div>
+                            <!-- Default view (no frame) -->
+                            <div id="studio-thumb" style="width:100%;aspect-ratio:9/16;background:var(--bg-input);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+                                <span style="color:var(--text-muted);">No thumbnail</span>
+                            </div>
+                        </div>
+                        <div id="studio-meta" style="font-size:0.85rem;color:var(--text-secondary);margin-top:12px;"></div>
                         <div id="studio-frames" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;"></div>
                     </div>
                     <!-- Right: Analysis + Captions + Publish -->
@@ -3718,9 +3736,16 @@ ${rev?.deals?.length > 0 ? 'REVENUE DEALS\n' + rev.deals.map(d => `  ${d.date} |
         document.getElementById('studio-detail').style.display = 'block';
         document.getElementById('studio-detail-title').textContent = item.filename;
 
-        // Thumbnail
+        // Video player or thumbnail
         const thumbEl = document.getElementById('studio-thumb');
-        if (item.thumbnail) {
+        if (studioServerOnline) {
+            thumbEl.innerHTML = `
+                <video controls style="width:100%;height:100%;object-fit:contain;background:#000;"
+                    poster="${item.thumbnail ? 'data:image/jpeg;base64,' + item.thumbnail : ''}">
+                    <source src="${STUDIO_API}/video/${item.id}" type="video/mp4">
+                    Your browser does not support video playback.
+                </video>`;
+        } else if (item.thumbnail) {
             thumbEl.innerHTML = `<img src="data:image/jpeg;base64,${item.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`;
         } else {
             thumbEl.innerHTML = '<span style="color:var(--text-muted);font-size:3rem;">&#127909;</span>';
@@ -3994,6 +4019,75 @@ ${rev?.deals?.length > 0 ? 'REVENUE DEALS\n' + rev.deals.map(d => `  ${d.date} |
     function studioFilesAdded(files) {
         if (!files || files.length === 0) return;
         alert(`To add ${files.length} file(s) to the content queue:\n\n1. Copy them to your Content Studio folder\n2. Click "Scan Folder" to detect them\n\nDrag-and-drop upload requires the local server to be running.`);
+    }
+
+    // Preview format presets (width x height in CSS pixels)
+    const PREVIEW_FORMATS = {
+        'default': { width: 300, height: null, frame: false, label: 'Default' },
+        'iphone': { width: 280, height: 607, frame: true, label: 'iPhone 15 Pro' },       // 393x852 scaled
+        'iphone-se': { width: 234, height: 416, frame: true, label: 'iPhone SE' },         // 375x667 scaled
+        'story': { width: 270, height: 480, frame: false, label: '9:16 Story' },
+    };
+    let currentPreviewFormat = 'default';
+
+    function setPreviewFormat(fmt) {
+        currentPreviewFormat = fmt;
+        const preset = PREVIEW_FORMATS[fmt];
+        const thumbEl = document.getElementById('studio-thumb');
+        const iphoneFrame = document.getElementById('studio-iphone-frame');
+        const iphoneScreen = document.getElementById('studio-iphone-screen');
+
+        document.querySelectorAll('.preview-fmt').forEach(b => b.classList.toggle('active', b.dataset.fmt === fmt));
+
+        if (preset.frame) {
+            // iPhone frame mode — move video into the iPhone screen
+            iphoneFrame.style.display = 'block';
+            iphoneFrame.style.width = (preset.width + 24) + 'px';
+            iphoneScreen.style.width = preset.width + 'px';
+            iphoneScreen.style.height = preset.height + 'px';
+            // Move content from thumb into iPhone screen
+            iphoneScreen.innerHTML = thumbEl.innerHTML;
+            thumbEl.style.display = 'none';
+            // Style video inside iPhone
+            const vid = iphoneScreen.querySelector('video');
+            if (vid) {
+                vid.style.width = '100%';
+                vid.style.height = '100%';
+                vid.style.objectFit = 'cover';
+            }
+            const img = iphoneScreen.querySelector('img');
+            if (img) {
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+            }
+            // Show/hide notch based on model
+            document.getElementById('studio-iphone-notch').style.display = fmt === 'iphone' ? 'block' : 'none';
+        } else {
+            // No frame — show in regular thumb div
+            iphoneFrame.style.display = 'none';
+            // If content was in iPhone screen, move it back
+            if (iphoneScreen.innerHTML && thumbEl.style.display === 'none') {
+                thumbEl.innerHTML = iphoneScreen.innerHTML;
+                iphoneScreen.innerHTML = '';
+            }
+            thumbEl.style.display = 'flex';
+            if (preset.height) {
+                thumbEl.style.width = preset.width + 'px';
+                thumbEl.style.height = preset.height + 'px';
+                thumbEl.style.aspectRatio = 'unset';
+            } else {
+                thumbEl.style.width = '100%';
+                thumbEl.style.height = '';
+                thumbEl.style.aspectRatio = '9/16';
+            }
+        }
+    }
+
+    // Show "Preview Local" button when on GitHub Pages
+    if (window.location.hostname.includes('github.io')) {
+        const localBtn = document.getElementById('btn-local-preview');
+        if (localBtn) localBtn.style.display = 'inline-block';
     }
 
     // ============================================================
