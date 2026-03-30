@@ -1475,10 +1475,12 @@
                             </div>
                             <div style="display:flex;gap:8px;flex-wrap:wrap;">
                                 <button class="btn btn-primary" onclick="studioPublish()" style="padding:8px 24px;">Post Now</button>
+                                <button class="btn btn-secondary" onclick="studioExportStory()">Export to Story</button>
                                 <button class="btn btn-secondary" onclick="studioMarkReady()">Mark Ready</button>
                                 <button class="btn btn-secondary" onclick="studioDelete()" style="color:var(--red);">Delete</button>
                             </div>
                             <div id="studio-publish-status" style="margin-top:8px;font-size:0.85rem;color:var(--text-muted);"></div>
+                            <div id="studio-export-results" style="margin-top:8px;"></div>
                             <div id="studio-posted-to" style="margin-top:8px;"></div>
                         </div>
                     </div>
@@ -4019,6 +4021,63 @@ ${rev?.deals?.length > 0 ? 'REVENUE DEALS\n' + rev.deals.map(d => `  ${d.date} |
     function studioFilesAdded(files) {
         if (!files || files.length === 0) return;
         alert(`To add ${files.length} file(s) to the content queue:\n\n1. Copy them to your Content Studio folder\n2. Click "Scan Folder" to detect them\n\nDrag-and-drop upload requires the local server to be running.`);
+    }
+
+    async function studioExportStory() {
+        if (!studioSelectedId) return;
+        if (!studioServerOnline) {
+            document.getElementById('studio-publish-status').innerHTML = '<span style="color:var(--red);">Local server required for story export. Run: python3 studio_server.py</span>';
+            return;
+        }
+
+        // Get selected platforms
+        const platforms = [];
+        const map = { ig: 'instagram', tt: 'tiktok', yt: 'youtube', th: 'threads' };
+        ['ig', 'tt', 'yt', 'th'].forEach(p => {
+            if (document.getElementById('pub-' + p)?.checked) platforms.push(map[p]);
+        });
+        if (platforms.length === 0) {
+            document.getElementById('studio-publish-status').innerHTML = '<span style="color:var(--red);">Select at least one platform to export</span>';
+            return;
+        }
+
+        const statusEl = document.getElementById('studio-publish-status');
+        const resultsEl = document.getElementById('studio-export-results');
+        statusEl.innerHTML = '<span style="color:var(--orange);">Converting to story format... (this may take a minute)</span>';
+        resultsEl.innerHTML = '';
+
+        try {
+            const resp = await fetch(STUDIO_API + '/export-story', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: studioSelectedId, platforms })
+            });
+            const data = await resp.json();
+
+            if (data.status === 'exported') {
+                statusEl.innerHTML = '<span style="color:var(--green);">Story export complete!</span>';
+                let html = '<div style="background:var(--bg-input);border-radius:8px;padding:12px;margin-top:8px;">';
+                html += '<h5 style="margin-bottom:8px;color:var(--accent-light);font-size:0.9rem;">Exported Story Files</h5>';
+
+                for (const [plat, info] of Object.entries(data.exports)) {
+                    const platLabel = { instagram: 'IG Stories', tiktok: 'TikTok Stories', youtube: 'YT Shorts', threads: 'Threads' }[plat] || plat;
+                    html += `<div style="margin-bottom:8px;">`;
+                    html += `<div style="font-size:0.85rem;margin-bottom:4px;">${platformBadge(plat)} <strong>${platLabel}</strong> — ${info.segments} segment${info.segments > 1 ? 's' : ''} (max ${info.maxPerSegment}s each)</div>`;
+                    html += `<div style="display:flex;gap:6px;flex-wrap:wrap;">`;
+                    for (const file of info.files) {
+                        const fname = file.split('/').pop();
+                        html += `<a href="${STUDIO_API}${file}" download class="btn btn-secondary" style="padding:4px 10px;font-size:0.75rem;text-decoration:none;">&#x2B07; ${fname}</a>`;
+                    }
+                    html += `</div></div>`;
+                }
+                html += '</div>';
+                resultsEl.innerHTML = html;
+            } else {
+                statusEl.innerHTML = `<span style="color:var(--red);">Export error: ${data.error || 'unknown'}</span>`;
+            }
+        } catch (err) {
+            statusEl.innerHTML = `<span style="color:var(--red);">Export failed: ${err.message}</span>`;
+        }
     }
 
     // Preview format presets (width x height in CSS pixels)

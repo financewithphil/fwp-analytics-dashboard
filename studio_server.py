@@ -57,6 +57,24 @@ class StudioHandler(BaseHTTPRequestHandler):
             with open(ANALYSIS_FILE) as f:
                 self._json_response(json.load(f))
 
+        elif path.startswith("/export-file/"):
+            # Serve exported story files for download
+            rel_path = path.split("/export-file/", 1)[1]
+            file_path = DIR / "data" / "exports" / rel_path
+            if not file_path.exists():
+                self._json_response({"error": "file not found"}, 404)
+                return
+            file_size = os.path.getsize(file_path)
+            self.send_response(200)
+            self._cors()
+            self.send_header("Content-Type", "video/mp4")
+            self.send_header("Content-Length", str(file_size))
+            self.send_header("Content-Disposition", f'attachment; filename="{file_path.name}"')
+            self.end_headers()
+            with open(file_path, "rb") as f:
+                while chunk := f.read(65536):
+                    self.wfile.write(chunk)
+
         elif path.startswith("/video/"):
             # Serve video file by content ID
             content_id = path.split("/video/", 1)[1]
@@ -171,6 +189,98 @@ class StudioHandler(BaseHTTPRequestHandler):
                 json.dump(queue, f, indent=2)
 
             self._json_response({"status": "updated", "queue": queue})
+
+        elif path == "/export-story":
+            content_id = body.get("id")
+            platforms = body.get("platforms", ["instagram", "tiktok", "youtube"])
+
+            with open(QUEUE_FILE) as f:
+                queue = json.load(f)
+            entry = next((i for i in queue if i["id"] == content_id), None)
+            if not entry:
+                self._json_response({"error": "content not found"}, 404)
+                return
+
+            filepath = entry["path"]
+            if not os.path.exists(filepath):
+                self._json_response({"error": "video file not found"}, 404)
+                return
+
+            export_dir = DIR / "data" / "exports" / content_id
+            export_dir.mkdir(parents=True, exist_ok=True)
+
+            # Platform story limits (max seconds per segment)
+            STORY_LIMITS = {
+                "instagram": 60,
+                "tiktok": 60,
+                "youtube": 180,
+                "facebook": 20,
+            }
+
+            duration = entry.get("durationSecs", 0)
+            width = entry.get("width", 0) or 1920
+            height = entry.get("height", 0) or 1080
+            is_landscape = width > height
+
+            # Build ffmpeg filter for 9:16 conversion
+            if is_landscape:
+                # Landscape → portrait: crop center, scale to 1080x1920
+                vf = "crop=ih*9/16:ih,scale=1080:1920"
+            else:
+                # Already portrait: just scale
+                vf = "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black"
+
+            results = {}
+            for plat in platforms:
+                max_seg = STORY_LIMITS.get(plat, 60)
+                plat_dir = export_dir / plat
+                plat_dir.mkdir(exist_ok=True)
+
+                if duration <= max_seg:
+                    # Single file, no split needed
+                    out_file = plat_dir / f"story_{plat}.mp4"
+                    cmd = [
+                        "ffmpeg", "-y", "-i", filepath,
+                        "-vf", vf,
+                        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                        "-c:a", "aac", "-b:a", "128k",
+                        "-movflags", "+faststart",
+                        str(out_file)
+                    ]
+                    subprocess.run(cmd, capture_output=True, timeout=300)
+                    results[plat] = {
+                        "segments": 1,
+                        "files": [f"/export-file/{content_id}/{plat}/story_{plat}.mp4"],
+                        "maxPerSegment": max_seg,
+                        "duration": round(duration, 1)
+                    }
+                else:
+                    # Split into segments
+                    num_segments = -(-int(duration) // max_seg)  # ceil division
+                    files = []
+                    for seg in range(num_segments):
+                        start = seg * max_seg
+                        seg_dur = min(max_seg, duration - start)
+                        out_file = plat_dir / f"story_{plat}_part{seg+1}.mp4"
+                        cmd = [
+                            "ffmpeg", "-y", "-ss", str(start), "-i", filepath,
+                            "-t", str(seg_dur),
+                            "-vf", vf,
+                            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                            "-c:a", "aac", "-b:a", "128k",
+                            "-movflags", "+faststart",
+                            str(out_file)
+                        ]
+                        subprocess.run(cmd, capture_output=True, timeout=300)
+                        files.append(f"/export-file/{content_id}/{plat}/story_{plat}_part{seg+1}.mp4")
+                    results[plat] = {
+                        "segments": num_segments,
+                        "files": files,
+                        "maxPerSegment": max_seg,
+                        "duration": round(duration, 1)
+                    }
+
+            self._json_response({"status": "exported", "exports": results})
 
         elif path == "/delete":
             content_id = body.get("id")
