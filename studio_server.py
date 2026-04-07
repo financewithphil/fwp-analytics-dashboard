@@ -73,6 +73,20 @@ class StudioHandler(BaseHTTPRequestHandler):
             except Exception:
                 self._json_response({"status": "pending"})
 
+        elif path == "/thumb-bg-status":
+            params = parse_qs(urlparse(self.path).query)
+            job_id = params.get("job", [None])[0]
+            status_file = DIR / "data" / "frames" / "ai_backgrounds" / "status.json"
+            try:
+                with open(status_file) as f:
+                    statuses = json.load(f)
+                if job_id and job_id in statuses:
+                    self._json_response(statuses[job_id])
+                else:
+                    self._json_response({"status": "pending"})
+            except Exception:
+                self._json_response({"status": "pending"})
+
         elif path.startswith("/frame/"):
             # Serve extracted frame images
             parts = path.split("/frame/", 1)[1]  # content_id/frame_00.jpg
@@ -83,9 +97,11 @@ class StudioHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 return
             file_size = os.path.getsize(frame_path)
+            ext = frame_path.suffix.lower()
+            ctype = {"webp": "image/webp", "png": "image/png"}.get(ext.lstrip("."), "image/jpeg")
             self.send_response(200)
             self._cors()
-            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(file_size))
             self.send_header("Cache-Control", "max-age=86400")
             self.end_headers()
@@ -483,6 +499,56 @@ class StudioHandler(BaseHTTPRequestHandler):
                     }
 
             self._json_response({"status": "exported", "exports": results})
+
+        elif path == "/generate-thumb-bg":
+            prompt = body.get("prompt", "")
+            ratio = body.get("ratio", "16:9")
+            import time as _time
+            job_id = f"bg_{int(_time.time())}"
+
+            # Run thumb_gen.py in background
+            import threading
+            def _run_gen():
+                try:
+                    subprocess.run(
+                        [sys.executable, str(DIR / "thumb_gen.py"),
+                         prompt, "--ratio", ratio, "--job-id", job_id],
+                        capture_output=True, text=True, timeout=180
+                    )
+                except Exception as e:
+                    status_file = DIR / "data" / "frames" / "ai_backgrounds" / "status.json"
+                    try:
+                        with open(status_file) as f:
+                            s = json.load(f)
+                    except Exception:
+                        s = {}
+                    s[job_id] = {"status": "error", "error": str(e), "updated": _time.time()}
+                    with open(status_file, "w") as f:
+                        json.dump(s, f, indent=2)
+
+            t = threading.Thread(target=_run_gen, daemon=True)
+            t.start()
+
+            self._json_response({
+                "status": "generating",
+                "job_id": job_id,
+                "poll_url": f"/thumb-bg-status?job={job_id}"
+            })
+
+        elif path == "/thumb-bg-status":
+            # Handled in do_GET, but accept POST too
+            params = parse_qs(urlparse(self.path).query)
+            job_id = params.get("job", [body.get("job_id")])[0]
+            status_file = DIR / "data" / "frames" / "ai_backgrounds" / "status.json"
+            try:
+                with open(status_file) as f:
+                    statuses = json.load(f)
+                if job_id and job_id in statuses:
+                    self._json_response(statuses[job_id])
+                else:
+                    self._json_response({"status": "pending"})
+            except Exception:
+                self._json_response({"status": "pending"})
 
         elif path == "/delete":
             content_id = body.get("id")

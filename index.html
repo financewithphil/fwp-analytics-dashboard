@@ -1329,6 +1329,19 @@
                         <input type="text" id="thumb-subtitle" placeholder="e.g., No Experience Needed">
                     </div>
                 </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex:2">
+                        <label>AI Background Prompt (optional)</label>
+                        <input type="text" id="thumb-ai-prompt" placeholder="e.g., dark cinematic city skyline with neon lights, no text no people">
+                    </div>
+                    <div class="form-group" style="flex:0 0 auto; display:flex; align-items:flex-end;">
+                        <button class="btn btn-secondary" onclick="generateAIBackground()" id="btn-ai-bg" style="white-space:nowrap;">Generate AI BG</button>
+                    </div>
+                </div>
+                <div id="ai-bg-status" style="display:none; padding:8px 12px; margin-bottom:12px; border-radius:var(--radius); background:rgba(167,139,250,0.1); color:var(--accent); font-size:0.85rem;"></div>
+                <div id="ai-bg-preview" style="display:none; margin-bottom:12px;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;" id="ai-bg-thumbs"></div>
+                </div>
                 <button class="btn btn-primary" onclick="generateThumbnails()">Generate 4 Variations</button>
             </div>
 
@@ -2763,6 +2776,134 @@
     // THUMBNAIL CREATOR
     // ============================================================
     let selectedThumb = null;
+    let aiBackgroundImg = null;  // Loaded AI background Image object
+    let aiBackgroundUrl = null;  // URL of selected AI background
+
+    async function generateAIBackground() {
+        const prompt = document.getElementById('thumb-ai-prompt').value.trim();
+        if (!prompt) { alert('Enter a background prompt first'); return; }
+
+        const platform = document.getElementById('thumb-platform').value;
+        const ratioMap = { youtube: '16:9', instagram: '1:1', tiktok: '9:16' };
+        const ratio = ratioMap[platform] || '16:9';
+
+        const statusEl = document.getElementById('ai-bg-status');
+        const btn = document.getElementById('btn-ai-bg');
+        statusEl.style.display = 'block';
+        statusEl.textContent = 'Connecting to AI generation server...';
+        btn.disabled = true;
+        btn.textContent = 'Generating...';
+
+        try {
+            const resp = await fetch('http://localhost:5555/generate-thumb-bg', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: prompt + '. No text, no words, no letters, no watermarks.', ratio })
+            });
+            const data = await resp.json();
+
+            if (data.status === 'generating') {
+                statusEl.textContent = 'Generating AI background via Higgsfield... (this takes 30-60s)';
+                pollAIBackground(data.job_id);
+            } else {
+                statusEl.textContent = 'Error: ' + (data.error || 'Unknown error');
+                btn.disabled = false;
+                btn.textContent = 'Generate AI BG';
+            }
+        } catch (e) {
+            statusEl.textContent = 'Server not running. Start it with: python3 studio_server.py';
+            btn.disabled = false;
+            btn.textContent = 'Generate AI BG';
+        }
+    }
+
+    async function pollAIBackground(jobId) {
+        const statusEl = document.getElementById('ai-bg-status');
+        const btn = document.getElementById('btn-ai-bg');
+        const maxPolls = 35;  // ~105 seconds
+        let polls = 0;
+
+        const interval = setInterval(async () => {
+            polls++;
+            if (polls > maxPolls) {
+                clearInterval(interval);
+                statusEl.textContent = 'Timed out. Try again or check Chrome is running.';
+                btn.disabled = false;
+                btn.textContent = 'Generate AI BG';
+                return;
+            }
+
+            try {
+                const resp = await fetch(`http://localhost:5555/thumb-bg-status?job=${jobId}`);
+                const data = await resp.json();
+
+                if (data.status === 'completed' && data.images) {
+                    clearInterval(interval);
+                    statusEl.textContent = `Done! ${data.images.length} backgrounds generated. Click one to use it.`;
+                    btn.disabled = false;
+                    btn.textContent = 'Generate AI BG';
+                    showAIBackgrounds(data.images);
+                } else if (data.status === 'error') {
+                    clearInterval(interval);
+                    statusEl.textContent = 'Error: ' + (data.error || 'Generation failed');
+                    btn.disabled = false;
+                    btn.textContent = 'Generate AI BG';
+                } else {
+                    const dots = '.'.repeat((polls % 3) + 1);
+                    statusEl.textContent = `${data.status || 'Generating'}${dots} (${polls * 3}s)`;
+                }
+            } catch (e) {
+                // Server might be busy, keep polling
+            }
+        }, 3000);
+    }
+
+    function showAIBackgrounds(images) {
+        const container = document.getElementById('ai-bg-thumbs');
+        const wrapper = document.getElementById('ai-bg-preview');
+        container.innerHTML = '';
+        wrapper.style.display = 'block';
+
+        // Add "No BG" option
+        const noBg = document.createElement('div');
+        noBg.style.cssText = 'width:80px;height:50px;border:2px solid var(--border);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:var(--text-muted);';
+        noBg.textContent = 'No BG';
+        noBg.onclick = () => {
+            aiBackgroundImg = null;
+            aiBackgroundUrl = null;
+            container.querySelectorAll('div,img').forEach(el => el.style.borderColor = 'var(--border)');
+            noBg.style.borderColor = 'var(--green)';
+        };
+        container.appendChild(noBg);
+
+        images.forEach((img, i) => {
+            const thumb = document.createElement('img');
+            thumb.src = `http://localhost:5555${img.url}`;
+            thumb.style.cssText = 'width:80px;height:50px;object-fit:cover;border:2px solid var(--border);border-radius:6px;cursor:pointer;';
+            thumb.onclick = () => {
+                container.querySelectorAll('div,img').forEach(el => el.style.borderColor = 'var(--border)');
+                thumb.style.borderColor = 'var(--green)';
+                loadAIBackground(`http://localhost:5555${img.url}`);
+            };
+            container.appendChild(thumb);
+
+            // Auto-select first one
+            if (i === 0) {
+                thumb.style.borderColor = 'var(--green)';
+                loadAIBackground(`http://localhost:5555${img.url}`);
+            }
+        });
+    }
+
+    function loadAIBackground(url) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            aiBackgroundImg = img;
+            aiBackgroundUrl = url;
+        };
+        img.src = url;
+    }
 
     function generateThumbnails() {
         const title = document.getElementById('thumb-title').value || 'Your Title Here';
@@ -2804,7 +2945,18 @@
         const ac = hexToRgb(accentColor);
         const s = Math.min(w, h); // scale factor
 
-        // ── Backgrounds ──
+        // ── AI Background (if loaded) ──
+        if (aiBackgroundImg) {
+            ctx.drawImage(aiBackgroundImg, 0, 0, w, h);
+            // Dark overlay for text legibility — varies by variation
+            const overlayAlpha = [0.45, 0.35, 0.5, 0.4][variation];
+            ctx.fillStyle = `rgba(0,0,0,${overlayAlpha})`;
+            ctx.fillRect(0, 0, w, h);
+            // Accent tint
+            ctx.fillStyle = `rgba(${ac.r},${ac.g},${ac.b},0.08)`;
+            ctx.fillRect(0, 0, w, h);
+        } else {
+        // ── Canvas Backgrounds (fallback) ──
         const bgVariations = [
             () => { // Cinematic gradient with grain
                 const g1 = ctx.createRadialGradient(w*0.3, h*0.4, 0, w*0.5, h*0.5, w*0.8);
@@ -2920,6 +3072,7 @@
         ];
 
         bgVariations[variation]();
+        } // end else (no AI background)
 
         // ── Grain texture overlay ──
         ctx.save();
