@@ -603,6 +603,7 @@
         }
         .modal-overlay.active { display: flex; }
         .modal-content {
+            position: relative;
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius);
@@ -1559,6 +1560,7 @@
     <!-- ==================== MODALS ==================== -->
     <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
         <div class="modal-content" id="modal-content" onclick="event.stopPropagation()">
+            <button onclick="closeModalDirect()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer;z-index:10;line-height:1;" title="Close">&times;</button>
             <div id="modal-body"></div>
         </div>
     </div>
