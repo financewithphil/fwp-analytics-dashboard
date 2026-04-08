@@ -976,6 +976,7 @@
             <button class="nav-tab" onclick="showPage('calendar')">Content Calendar</button>
             <button class="nav-tab" onclick="showPage('manychat')">ManyChat Flows</button>
             <button class="nav-tab" onclick="showPage('studio')">Content Studio</button>
+            <button class="nav-tab" onclick="showPage('deals')">Brand Deals</button>
         </nav>
 
         <!-- ==================== OVERVIEW PAGE ==================== -->
@@ -1570,6 +1571,57 @@
         </div>
     </div>
 
+    <!-- ==================== BRAND DEALS PAGE ==================== -->
+    <div id="page-deals" class="page">
+        <div class="section-header">
+            <h2>Brand Deals</h2>
+            <button class="btn btn-primary" onclick="showAddBrandDealModal()">+ New Deal</button>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-row" id="deals-kpis"></div>
+
+        <!-- Pipeline -->
+        <div class="table-section">
+            <div class="flex-between mb-2">
+                <h3>Deal Pipeline</h3>
+                <div style="display:flex;gap:8px;">
+                    <select id="deals-filter-status" onchange="renderDealsPage()">
+                        <option value="all">All Status</option>
+                        <option value="prospect">Prospect</option>
+                        <option value="outreach">Outreach</option>
+                        <option value="negotiation">Negotiation</option>
+                        <option value="contracted">Contracted</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="paid">Paid</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                    <select id="deals-filter-platform" onchange="renderDealsPage()">
+                        <option value="all">All Platforms</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="threads">Threads</option>
+                        <option value="multi">Multi-Platform</option>
+                    </select>
+                </div>
+            </div>
+            <div id="deals-pipeline"></div>
+        </div>
+
+        <!-- Completed Deals -->
+        <div class="table-section">
+            <h3 class="mb-2">Completed Deals</h3>
+            <div id="deals-completed-table"></div>
+        </div>
+
+        <!-- Active / In Progress -->
+        <div class="table-section">
+            <h3 class="mb-2">Active Deals</h3>
+            <div id="deals-active-table"></div>
+        </div>
+    </div>
+
     <!-- ==================== MODALS ==================== -->
     <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
         <div class="modal-content" id="modal-content" onclick="event.stopPropagation()">
@@ -1899,7 +1951,8 @@
             thumbnails: () => {},
             calendar: renderCalendar,
             manychat: renderManyChat,
-            studio: renderStudio
+            studio: renderStudio,
+            deals: renderDealsPage
         };
         if (renderers[page]) renderers[page]();
     }
@@ -2321,6 +2374,257 @@
         analyticsData.revenue.deals.splice(idx, 1);
         localStorage.setItem('fwp_revenue', JSON.stringify(analyticsData.revenue.deals));
         renderRevenue();
+    }
+
+    // ============================================================
+    // BRAND DEALS PAGE
+    // ============================================================
+    const DEAL_STATUSES = ['prospect', 'outreach', 'negotiation', 'contracted', 'delivered', 'paid', 'completed'];
+    const DEAL_STATUS_COLORS = {
+        prospect: '#6b7280', outreach: '#3b82f6', negotiation: '#f59e0b',
+        contracted: '#8b5cf6', delivered: '#06b6d4', paid: '#22c55e', completed: '#10b981'
+    };
+
+    function getBrandDeals() {
+        const saved = localStorage.getItem('fwp_brand_deals');
+        return saved ? JSON.parse(saved) : [];
+    }
+
+    function saveBrandDeals(deals) {
+        localStorage.setItem('fwp_brand_deals', JSON.stringify(deals));
+    }
+
+    function renderDealsPage() {
+        const deals = getBrandDeals();
+        const filterStatus = document.getElementById('deals-filter-status')?.value || 'all';
+        const filterPlatform = document.getElementById('deals-filter-platform')?.value || 'all';
+
+        let filtered = deals;
+        if (filterStatus !== 'all') filtered = filtered.filter(d => d.status === filterStatus);
+        if (filterPlatform !== 'all') filtered = filtered.filter(d => d.platform === filterPlatform);
+
+        // KPIs
+        const totalValue = deals.reduce((s, d) => s + (d.amount || 0), 0);
+        const paidDeals = deals.filter(d => d.status === 'paid' || d.status === 'completed');
+        const paidValue = paidDeals.reduce((s, d) => s + (d.amount || 0), 0);
+        const activeDeals = deals.filter(d => !['completed', 'paid'].includes(d.status));
+        const pipelineValue = activeDeals.reduce((s, d) => s + (d.amount || 0), 0);
+        const avgDeal = deals.length > 0 ? totalValue / deals.length : 0;
+
+        document.getElementById('deals-kpis').innerHTML = `
+            <div class="kpi-card"><div class="kpi-label">Total Deals</div><div class="kpi-value">${deals.length}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Total Value</div><div class="kpi-value" style="color:#22c55e">$${totalValue.toLocaleString()}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Earned (Paid)</div><div class="kpi-value" style="color:#10b981">$${paidValue.toLocaleString()}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Pipeline Value</div><div class="kpi-value" style="color:#f59e0b">$${pipelineValue.toLocaleString()}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Avg Deal Size</div><div class="kpi-value">$${avgDeal.toLocaleString(undefined, {maximumFractionDigits: 0})}</div></div>
+            <div class="kpi-card"><div class="kpi-label">Active Deals</div><div class="kpi-value">${activeDeals.length}</div></div>
+        `;
+
+        // Pipeline by status
+        let pipeHtml = '<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;">';
+        DEAL_STATUSES.forEach(status => {
+            const inStatus = deals.filter(d => d.status === status);
+            const statusValue = inStatus.reduce((s, d) => s + (d.amount || 0), 0);
+            pipeHtml += `<div style="min-width:160px;flex:1;background:var(--bg-input);border-radius:var(--radius);padding:12px;border-top:3px solid ${DEAL_STATUS_COLORS[status]}">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:${DEAL_STATUS_COLORS[status]}">${status}</span>
+                    <span style="font-size:0.75rem;color:var(--text-muted)">${inStatus.length}</span>
+                </div>
+                <div style="font-size:0.85rem;color:#22c55e;font-weight:600;margin-bottom:8px;">$${statusValue.toLocaleString()}</div>`;
+            inStatus.forEach(d => {
+                pipeHtml += `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;cursor:pointer;" onclick="showDealDetail('${d.id}')">
+                    <div style="font-weight:600;font-size:0.8rem;color:var(--text-primary);margin-bottom:2px;">${d.brand}</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);">${platformBadge(d.platform)} · $${(d.amount||0).toLocaleString()}</div>
+                </div>`;
+            });
+            pipeHtml += '</div>';
+        });
+        pipeHtml += '</div>';
+        document.getElementById('deals-pipeline').innerHTML = pipeHtml;
+
+        // Completed deals table
+        const completed = filtered.filter(d => d.status === 'completed' || d.status === 'paid');
+        renderDealTable('deals-completed-table', completed, true);
+
+        // Active deals table
+        const active = filtered.filter(d => !['completed', 'paid'].includes(d.status));
+        renderDealTable('deals-active-table', active, false);
+    }
+
+    function renderDealTable(containerId, deals, isCompleted) {
+        if (deals.length === 0) {
+            document.getElementById(containerId).innerHTML = `<p style="color:#6a6a8a;padding:12px">${isCompleted ? 'No completed deals yet.' : 'No active deals.'}</p>`;
+            return;
+        }
+        let html = `<table class="data-table"><thead><tr>
+            <th>Brand</th><th>Platform</th><th>Type</th><th>Amount</th><th>Status</th>
+            <th>Deliverables</th><th>Date</th><th>Link</th><th></th>
+        </tr></thead><tbody>`;
+        deals.sort((a, b) => (b.date || '').localeCompare(a.date || '')).forEach(d => {
+            html += `<tr>
+                <td style="color:#e0e0ff;font-weight:600;cursor:pointer;" onclick="showDealDetail('${d.id}')">${d.brand}</td>
+                <td>${platformBadge(d.platform)}</td>
+                <td><span class="tag tag-low">${d.type || 'sponsorship'}</span></td>
+                <td style="color:#22c55e;font-weight:700">$${(d.amount||0).toLocaleString()}</td>
+                <td><span style="color:${DEAL_STATUS_COLORS[d.status] || '#6b7280'};font-weight:600;font-size:0.8rem;">${d.status}</span></td>
+                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;font-size:0.8rem;color:var(--text-muted);">${d.deliverables || '-'}</td>
+                <td>${d.date || '-'}</td>
+                <td>${d.postUrl ? `<a href="${d.postUrl}" target="_blank" style="color:var(--accent);font-size:0.8rem;">View</a>` : '-'}</td>
+                <td style="white-space:nowrap;">
+                    <button class="btn btn-secondary btn-sm" onclick="editBrandDeal('${d.id}')" style="padding:2px 8px;font-size:11px;">edit</button>
+                    <button class="btn btn-secondary btn-sm" onclick="removeBrandDeal('${d.id}')" style="padding:2px 8px;font-size:11px;">x</button>
+                </td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById(containerId).innerHTML = html;
+    }
+
+    function showAddBrandDealModal(existingDeal) {
+        const d = existingDeal || {};
+        const isEdit = !!d.id;
+        document.getElementById('modal-body').innerHTML = `
+            <h2>${isEdit ? 'Edit' : 'Add'} Brand Deal</h2>
+            <div class="form-row">
+                <div class="form-group"><label>Brand / Company</label><input type="text" id="bd-brand" value="${d.brand || ''}" placeholder="e.g., NordVPN, Cash App"></div>
+                <div class="form-group"><label>Amount ($)</label><input type="number" id="bd-amount" value="${d.amount || ''}" placeholder="e.g., 2000"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Platform</label>
+                    <select id="bd-platform">
+                        <option value="instagram" ${d.platform==='instagram'?'selected':''}>Instagram</option>
+                        <option value="tiktok" ${d.platform==='tiktok'?'selected':''}>TikTok</option>
+                        <option value="youtube" ${d.platform==='youtube'?'selected':''}>YouTube</option>
+                        <option value="threads" ${d.platform==='threads'?'selected':''}>Threads</option>
+                        <option value="multi" ${d.platform==='multi'?'selected':''}>Multi-Platform</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Deal Type</label>
+                    <select id="bd-type">
+                        <option value="sponsorship" ${d.type==='sponsorship'?'selected':''}>Sponsorship</option>
+                        <option value="brand_deal" ${d.type==='brand_deal'?'selected':''}>Brand Deal</option>
+                        <option value="affiliate" ${d.type==='affiliate'?'selected':''}>Affiliate</option>
+                        <option value="ugc" ${d.type==='ugc'?'selected':''}>UGC</option>
+                        <option value="ambassador" ${d.type==='ambassador'?'selected':''}>Ambassador</option>
+                        <option value="gifted" ${d.type==='gifted'?'selected':''}>Gifted</option>
+                        <option value="ad_revenue" ${d.type==='ad_revenue'?'selected':''}>Ad Revenue</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Status</label>
+                    <select id="bd-status">
+                        ${DEAL_STATUSES.map(s => `<option value="${s}" ${d.status===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group"><label>Date</label><input type="date" id="bd-date" value="${d.date || new Date().toISOString().split('T')[0]}"></div>
+            </div>
+            <div class="form-group mb-1"><label>Deliverables</label><input type="text" id="bd-deliverables" value="${d.deliverables || ''}" placeholder="e.g., 1 Reel + 3 Stories + Usage Rights"></div>
+            <div class="form-row">
+                <div class="form-group"><label>Post URL (optional)</label><input type="url" id="bd-posturl" value="${d.postUrl || ''}" placeholder="https://..."></div>
+                <div class="form-group"><label>Contact Email</label><input type="email" id="bd-contact" value="${d.contact || ''}" placeholder="brand@company.com"></div>
+            </div>
+            <div class="form-group mb-1"><label>Deadline</label><input type="date" id="bd-deadline" value="${d.deadline || ''}"></div>
+            <div class="form-group mb-2"><label>Notes</label><textarea id="bd-notes" placeholder="Deal details, requirements, talking points...">${d.notes || ''}</textarea></div>
+            <button class="btn btn-primary" onclick="saveBrandDeal('${d.id || ''}')">${isEdit ? 'Update' : 'Save'} Deal</button>
+        `;
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    function saveBrandDeal(existingId) {
+        const deals = getBrandDeals();
+        const deal = {
+            id: existingId || 'deal_' + Date.now(),
+            brand: document.getElementById('bd-brand').value,
+            amount: parseFloat(document.getElementById('bd-amount').value) || 0,
+            platform: document.getElementById('bd-platform').value,
+            type: document.getElementById('bd-type').value,
+            status: document.getElementById('bd-status').value,
+            date: document.getElementById('bd-date').value,
+            deliverables: document.getElementById('bd-deliverables').value,
+            postUrl: document.getElementById('bd-posturl').value,
+            contact: document.getElementById('bd-contact').value,
+            deadline: document.getElementById('bd-deadline').value,
+            notes: document.getElementById('bd-notes').value,
+        };
+        if (!deal.brand) return alert('Please enter a brand name');
+
+        if (existingId) {
+            const idx = deals.findIndex(d => d.id === existingId);
+            if (idx >= 0) deals[idx] = deal;
+        } else {
+            deals.push(deal);
+        }
+        saveBrandDeals(deals);
+        closeModalDirect();
+        renderDealsPage();
+        // Also update the overview revenue tracker
+        syncDealsToRevenue(deals);
+    }
+
+    function editBrandDeal(id) {
+        const deal = getBrandDeals().find(d => d.id === id);
+        if (deal) showAddBrandDealModal(deal);
+    }
+
+    function removeBrandDeal(id) {
+        if (!confirm('Remove this deal?')) return;
+        const deals = getBrandDeals().filter(d => d.id !== id);
+        saveBrandDeals(deals);
+        renderDealsPage();
+        syncDealsToRevenue(deals);
+    }
+
+    function showDealDetail(id) {
+        const d = getBrandDeals().find(deal => deal.id === id);
+        if (!d) return;
+        document.getElementById('modal-body').innerHTML = `
+            <h2 style="margin-bottom:4px;">${d.brand}</h2>
+            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+                ${platformBadge(d.platform)}
+                <span class="tag tag-low">${d.type || 'sponsorship'}</span>
+                <span style="color:${DEAL_STATUS_COLORS[d.status]};font-weight:600;font-size:0.85rem;">${d.status}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+                <div class="kpi-card"><div class="kpi-label">Amount</div><div class="kpi-value" style="color:#22c55e">$${(d.amount||0).toLocaleString()}</div></div>
+                <div class="kpi-card"><div class="kpi-label">Date</div><div class="kpi-value" style="font-size:1rem">${d.date || '-'}</div></div>
+            </div>
+            ${d.deliverables ? `<div style="margin-bottom:12px;"><strong style="color:var(--accent-light);font-size:0.85rem;">Deliverables:</strong><p style="color:var(--text-muted);margin-top:4px;">${d.deliverables}</p></div>` : ''}
+            ${d.deadline ? `<div style="margin-bottom:12px;"><strong style="color:#f59e0b;font-size:0.85rem;">Deadline:</strong> <span style="color:var(--text-muted);">${d.deadline}</span></div>` : ''}
+            ${d.contact ? `<div style="margin-bottom:12px;"><strong style="color:var(--accent-light);font-size:0.85rem;">Contact:</strong> <span style="color:var(--text-muted);">${d.contact}</span></div>` : ''}
+            ${d.postUrl ? `<div style="margin-bottom:12px;"><strong style="color:var(--accent-light);font-size:0.85rem;">Post:</strong> <a href="${d.postUrl}" target="_blank" style="color:var(--accent);">${d.postUrl}</a></div>` : ''}
+            ${d.notes ? `<div style="margin-bottom:16px;"><strong style="color:var(--accent-light);font-size:0.85rem;">Notes:</strong><p style="color:var(--text-muted);margin-top:4px;white-space:pre-wrap;">${d.notes}</p></div>` : ''}
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary" onclick="editBrandDeal('${d.id}')">Edit Deal</button>
+                <button class="btn btn-secondary" onclick="updateDealStatus('${d.id}')">Update Status</button>
+            </div>
+        `;
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    function updateDealStatus(id) {
+        const deals = getBrandDeals();
+        const deal = deals.find(d => d.id === id);
+        if (!deal) return;
+        const currentIdx = DEAL_STATUSES.indexOf(deal.status);
+        if (currentIdx < DEAL_STATUSES.length - 1) {
+            deal.status = DEAL_STATUSES[currentIdx + 1];
+            saveBrandDeals(deals);
+            closeModalDirect();
+            renderDealsPage();
+            syncDealsToRevenue(deals);
+        }
+    }
+
+    function syncDealsToRevenue(deals) {
+        // Sync completed/paid deals to the overview revenue tracker
+        const revDeals = deals.filter(d => d.status === 'paid' || d.status === 'completed').map(d => ({
+            brand: d.brand, amount: d.amount, platform: d.platform,
+            type: d.type, date: d.date, postId: '', notes: d.deliverables || d.notes || ''
+        }));
+        if (!analyticsData.revenue) analyticsData.revenue = { deals: [], summary: {} };
+        analyticsData.revenue.deals = revDeals;
+        localStorage.setItem('fwp_revenue', JSON.stringify(revDeals));
     }
 
     function renderPostTable(containerId, posts) {
