@@ -1,11 +1,5 @@
-import { PageStub } from "@/components/layout/page-stub";
+import { Studio } from "@/components/studio/studio";
 
 export default function StudioPage() {
-  return (
-    <PageStub
-      title="Content Studio"
-      subtitle="5-stage pipeline (inbox → analyzed → captioned → ready → posted) with video preview, device frames, per-platform caption editors, and publish/export."
-      comingIn="Session 7"
-    />
-  );
+  return <Studio />;
 }
