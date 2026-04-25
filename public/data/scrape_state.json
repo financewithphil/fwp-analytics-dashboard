@@ -6,11 +6,10 @@
     "lastPostId": "ig_3556623510023757514_5251656103"
   },
   "tiktok": {
-    "status": "stale",
-    "totalScraped": 150,
-    "lastScrapedDate": "2026-03-28T12:52:39.002883",
-    "lastPostId": "tt_7591534197777435934",
-    "lastError": "2026-04-25 attempt: TikTok served 'Something went wrong' (anti-bot trip after multiple navigations). Code is in place; retry after TT cools down."
+    "status": "complete",
+    "totalScraped": 152,
+    "lastScrapedDate": "2026-04-25T21:52:20+00:00",
+    "lastPostId": "tt_7034256779999464710"
   },
   "youtube": {
     "status": "complete",
