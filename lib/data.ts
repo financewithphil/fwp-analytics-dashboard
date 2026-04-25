@@ -67,8 +67,8 @@ export const loadAnalytics = () =>
 export const loadFollowData = () =>
   fetchJson<FollowData>(dataPaths.followData, {
     fallback: {
-      instagram: { followers: [], following: [] },
-      tiktok: { followers: [], following: [] },
+      instagram: { followers: 0, following: 0, dontFollowBack: [], fans: [], mutual: [] },
+      tiktok: { followers: 0, following: 0, dontFollowBack: [], fans: [], mutual: [] },
     },
   });
 

@@ -1,11 +1,5 @@
-import { PageStub } from "@/components/layout/page-stub";
+import { Insights } from "@/components/insights/insights";
 
 export default function InsightsPage() {
-  return (
-    <PageStub
-      title="Insights"
-      subtitle="Posting heatmap, viral classifier, hook library, hashtag performance, superfans, and audience overlap."
-      comingIn="Session 3"
-    />
-  );
+  return <Insights />;
 }

@@ -61,16 +61,157 @@ export interface PlatformScrapeState {
 }
 
 export interface FollowData {
-  instagram: { followers: string[]; following: string[] };
-  tiktok: { followers: string[]; following: string[] };
-  youtube?: { followers: string[]; following: string[] };
-  threads?: { followers: string[]; following: string[] };
+  instagram: PlatformFollowData;
+  tiktok: PlatformFollowData;
+  youtube?: PlatformFollowData;
+  threads?: PlatformFollowData;
+  summary?: Record<string, unknown>;
+}
+
+export interface HeatmapCell {
+  count: number;
+  avgEngagement: number;
+  avgViews: number;
+}
+
+export interface BestPostingTime {
+  day: number;
+  hour: number;
+  count: number;
+  avgEngagement: number;
+  avgViews: number;
+}
+
+export interface ViralPost {
+  id: string;
+  title: string;
+  platform: Platform;
+  views: number;
+  likes?: number;
+  comments?: number;
+  url?: string;
+  multiplier?: number;
+  avgViewsForPlatform?: number;
+}
+
+export interface HashtagStat {
+  tag: string;
+  count: number;
+  avgViews: number;
+  avgLikes: number;
+  avgEngagement: number;
+  totalViews: number;
+}
+
+export interface CrossPostItem {
+  title: string;
+  platforms: Platform[];
+  posts: Array<{
+    id: string;
+    platform: Platform;
+    views: number;
+    likes: number;
+    url?: string;
+  }>;
+}
+
+export interface HookTypeStat {
+  type: string;
+  count: number;
+  avgViews: number;
+  avgLikes: number;
+  avgEngagement: number;
+  totalViews: number;
+  topPost?: string;
+}
+
+export interface TopHook {
+  hook: string;
+  postId: string;
+  platform: Platform;
+  views: number;
+  likes: number;
+  engagement: number;
+  url?: string;
+}
+
+export interface TopCommenter {
+  username: string;
+  count: number;
+  platforms: Platform[];
+}
+
+export interface HighValueComment {
+  id: string;
+  postId?: string;
+  platform: Platform;
+  username: string;
+  text: string;
+  likes: number;
+  date?: string;
+  postUrl?: string;
+}
+
+export interface GrowthMonth {
+  month: string;
+  posts: number;
+  views: number;
+  likes: number;
+  comments: number;
+}
+
+export interface AudienceOverlap {
+  crossPlatformUsers: number;
+  totalUniqueUsers: number;
+  platformBreakdown: Record<string, number>;
+}
+
+export interface FunnelStage {
+  views: number;
+  likes: number;
+  comments: number;
+  shares?: number;
 }
 
 export interface AnalyticsBundle {
-  postingHeatmap?: Array<Array<{ avgViews: number; postCount: number }>>;
-  // Other pre-computed sections live here; loosely typed for now.
+  postingHeatmap?: HeatmapCell[][];
+  bestPostingTimes?: BestPostingTime[];
+  contentCategories?: Record<string, { count: number; avgViews: number; avgEngagement: number }>;
+  viralPosts?: ViralPost[];
+  platformAverages?: Record<Platform, { avgViews: number; avgLikes: number; avgComments: number; avgEngagement: number }>;
+  engagementFunnel?: Record<Platform, FunnelStage>;
+  audienceOverlap?: AudienceOverlap;
+  topCommenters?: TopCommenter[];
+  highValueComments?: HighValueComment[];
+  hashtagPerformance?: HashtagStat[];
+  growthVelocity?: GrowthMonth[];
+  crossPosts?: CrossPostItem[];
+  topHooks?: TopHook[];
+  hookTypes?: HookTypeStat[];
+  responseRate?: {
+    overall: { rate: number; total: number; responded: number };
+    byPlatform?: Record<Platform, { rate: number; total: number; responded: number }>;
+    bySentiment?: Record<string, number>;
+    priorityUnreplied?: HighValueComment[];
+  };
   [key: string]: unknown;
+}
+
+export interface FollowUser {
+  id: string;
+  username: string;
+  fullName?: string;
+  isVerified?: boolean;
+}
+
+export interface PlatformFollowData {
+  scrapedAt?: string | null;
+  following?: number | null;
+  followers?: number;
+  dontFollowBack?: FollowUser[];
+  fans?: FollowUser[];
+  mutual?: FollowUser[];
+  note?: string;
 }
 
 export interface Deal {
