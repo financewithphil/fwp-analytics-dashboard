@@ -6,22 +6,23 @@
     "lastPostId": "ig_3556623510023757514_5251656103"
   },
   "tiktok": {
-    "status": "complete",
+    "status": "stale",
     "totalScraped": 150,
     "lastScrapedDate": "2026-03-28T12:52:39.002883",
-    "lastPostId": "tt_7591534197777435934"
+    "lastPostId": "tt_7591534197777435934",
+    "lastError": "2026-04-25 attempt: TikTok served 'Something went wrong' (anti-bot trip after multiple navigations). Code is in place; retry after TT cools down."
   },
   "youtube": {
     "status": "complete",
     "totalScraped": 644,
-    "lastScrapedDate": "2026-03-28T12:33:43.624563",
-    "lastPostId": "yt_gxmWyGnKT0w"
+    "lastScrapedDate": "2026-04-25T21:12:51+00:00",
+    "lastPostId": "yt_QEB5boglhD0"
   },
   "threads": {
     "status": "complete",
-    "totalScraped": 500,
-    "lastScrapedDate": "2026-03-28T12:57:37.595381",
-    "lastPostId": "th_3812166815183734920"
+    "totalScraped": 527,
+    "lastScrapedDate": "2026-04-25T21:19:49+00:00",
+    "lastPostId": "th_3711664944640088180"
   },
   "followers": {
     "instagram": 10972,

@@ -125,14 +125,17 @@ class CDP:
                 return data.get("result", {})
         raise CDPError(f"Timed out waiting for response to {method}")
 
-    def wait_for_load(self, timeout: int = 15) -> None:
-        # Simple poll on document.readyState — more robust than Page.loadEventFired
-        # because we may have attached after load already fired.
+    def wait_for_load(self, timeout: int = 15, expect_url_substring: Optional[str] = None) -> None:
+        """Wait until document.readyState is complete (and optionally that the
+        URL contains an expected substring — useful when we've just kicked off
+        a Page.navigate and don't want to read the OLD page state)."""
         deadline = time.time() + timeout
         while time.time() < deadline:
             try:
                 ready = self.evaluate("document.readyState")
-                if ready in ("complete", "interactive"):
+                url = self.evaluate("window.location.href") or ""
+                url_ok = expect_url_substring is None or expect_url_substring in url
+                if ready in ("complete", "interactive") and url_ok:
                     return
             except CDPError:
                 pass
