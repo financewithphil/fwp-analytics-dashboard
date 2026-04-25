@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Finance With Phil — Social Media Analytics
 
-## Getting Started
+PIN-gated analytics dashboard for Phillip Karaya / Finance With Phil's
+cross-platform content (Instagram, TikTok, YouTube, Threads).
 
-First, run the development server:
+**Live:** https://financewithphil.github.io/fwp-analytics-dashboard/
+**PIN:** 1973
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Stack
+
+- Next.js 16 (App Router) + TypeScript
+- Tailwind v4 with `@theme` design tokens
+- shadcn/ui components on top of Radix / Base UI
+- Recharts for line / bar / doughnut charts (custom 7×24 heatmap)
+- Zustand with `localStorage` persistence for client-side state
+- Newsreader (display) + Geist Sans (body) + JetBrains Mono (data),
+  self-hosted via `next/font`
+- Static export to GitHub Pages (no SSR)
+
+## Project layout
+
+```
+app/                     Next.js App Router routes (one per tab)
+components/
+  charts/                Reusable primitives — KpiCard, LineChart,
+                         BarChart, DoughnutChart, PlatformBadge, Section
+  layout/                AppShell, Nav, AuthGate, PinWall, DataStatusBar
+  overview/              Overview tab composition (8 sections)
+  insights/              Insights tab composition (12 sections)
+  posts/, comments/      Tab implementations
+  calendar/, deals/      Tab implementations
+  creators/, manychat/   Tab implementations
+  thumbnails/, studio/   Tab implementations (local-server-aware)
+lib/
+  data.ts                Typed JSON loaders for /public/data/*
+  derive.ts              Pure helpers (totals, byPlatform, cadence, etc.)
+  store.ts               Zustand store with localStorage persistence
+  auth.ts                SHA-256 PIN check (Web Crypto API)
+  format.ts              fmt(), fmtPct(), fmtDate(), platformLabel
+  fonts.ts               next/font configuration
+  studio-server.ts       Client for the optional Python Studio server
+  types.ts               Shared TypeScript types
+public/data/             Real scraped JSON data (read-only at runtime)
+v1-archive/              Original single-file dashboard preserved as-is
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local development
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+pnpm dev               # http://localhost:3000
+pnpm build             # static export to out/
+pnpm lint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The PIN gate falls back to "1973" in development. To override, set
+`NEXT_PUBLIC_DASHBOARD_PIN_HASH` (SHA-256 hex) in `.env.local`.
 
-## Learn More
+## Refreshing data
 
-To learn more about Next.js, take a look at the following resources:
+The dashboard reads `public/data/*.json` at runtime via fetch. To
+update:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Run the v1 scraping flow (Chrome CDP on port 9222) — see
+   `v1-archive/` for the original Python scripts.
+2. Replace the JSON files in `public/data/`.
+3. Commit and push — GitHub Pages will auto-redeploy in ~60s.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Optional local Studio server
 
-## Deploy on Vercel
+Two tabs (Thumbnails, Content Studio) integrate with a local Python
+server at `localhost:5555` for AI background generation, video
+analysis, and one-click publishing. Both tabs detect when the server
+is offline and degrade gracefully — caption editing, queue management,
+and canvas-based thumbnail variations all work without it.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+To run the server, see `v1-archive/studio_server.py`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy
+
+GitHub Actions workflow at `.github/workflows/deploy.yml` builds and
+publishes to GitHub Pages on every push to `main`. Set the
+`DASHBOARD_PIN_HASH` repository secret to override the default PIN.
