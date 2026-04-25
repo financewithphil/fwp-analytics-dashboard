@@ -1,11 +1,5 @@
-import { PageStub } from "@/components/layout/page-stub";
+import { Comments } from "@/components/comments/comments";
 
 export default function CommentsPage() {
-  return (
-    <PageStub
-      title="Comments"
-      subtitle="Sentiment breakdown, volume over time, top keywords, and unresponded threads."
-      comingIn="Session 4"
-    />
-  );
+  return <Comments />;
 }
