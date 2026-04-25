@@ -16,19 +16,41 @@ export function PostingHeatmap({ data }: HeatmapProps) {
     ? Math.max(...flat.map((c) => c.avgViews))
     : 1;
 
+  // Find the best slot to surface as a callout
+  type Best = { day: string; hour: number; cell: HeatmapCell };
+  const best: Best | null = data.reduce<Best | null>((acc, row, dIdx) => {
+    return row.reduce<Best | null>((inner, cell, h) => {
+      if (cell.count > 0 && (!inner || cell.avgViews > inner.cell.avgViews)) {
+        return { day: DAYS[dIdx], hour: h, cell };
+      }
+      return inner;
+    }, acc);
+  }, null);
+
   return (
     <Section
       title="Posting Heatmap"
       hint="Average views by day-of-week × hour-of-day. Brighter = stronger."
-      bodyClassName="-mx-1 overflow-x-auto"
+      action={
+        best ? (
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-muted">
+            Best slot ·{" "}
+            <span className="text-brand">
+              {best.day} {best.hour.toString().padStart(2, "0")}:00
+            </span>{" "}
+            · {fmt(best.cell.avgViews)} avg
+          </span>
+        ) : undefined
+      }
+      bodyClassName="overflow-x-auto"
     >
-      <div className="min-w-[680px] px-1">
-        <div className="grid grid-cols-[44px_repeat(24,minmax(0,1fr))] gap-px">
+      <div className="min-w-[640px]">
+        <div className="grid grid-cols-[36px_repeat(24,minmax(0,1fr))] gap-px">
           <div />
           {Array.from({ length: 24 }, (_, h) => (
             <div
               key={h}
-              className="font-mono text-center text-[9px] uppercase tracking-wider text-ink-muted"
+              className="font-mono text-center text-[9px] uppercase tracking-wider text-ink-muted leading-none pb-1"
             >
               {h % 3 === 0 ? h.toString().padStart(2, "0") : ""}
             </div>
@@ -58,7 +80,7 @@ function DayRow({
 }) {
   return (
     <>
-      <div className="flex items-center font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+      <div className="flex h-5 items-center font-mono text-[9px] uppercase tracking-wider text-ink-muted">
         {dayLabel}
       </div>
       {Array.from({ length: 24 }, (_, h) => {
@@ -73,11 +95,10 @@ function DayRow({
         const bg = cell.count
           ? `color-mix(in oklab, var(--brand) ${Math.round(intensity * 90 + 10)}%, white)`
           : "var(--muted)";
-        const textColor = intensity > 0.55 ? "white" : "var(--ink-muted)";
         return (
           <div
             key={h}
-            className="aspect-square rounded-[2px] text-center font-mono text-[8.5px] leading-none transition hover:scale-110"
+            className="h-5 rounded-[2px] transition hover:scale-110"
             style={{ background: bg }}
             title={
               cell.count
@@ -86,14 +107,7 @@ function DayRow({
                   )} avg views, ${cell.avgEngagement.toFixed(1)}% eng`
                 : `${dayLabel} ${h.toString().padStart(2, "0")}:00 — no posts`
             }
-          >
-            <span
-              className="grid h-full place-items-center"
-              style={{ color: textColor }}
-            >
-              {cell.count > 0 ? cell.count : ""}
-            </span>
-          </div>
+          />
         );
       })}
     </>

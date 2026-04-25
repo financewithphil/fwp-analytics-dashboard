@@ -14,6 +14,7 @@ import { Superfans } from "./superfans";
 import { HookAnalysis } from "./hooks";
 import { HighValueQuestions } from "./unreplied";
 import { DoesntFollowBack } from "./follow-back";
+import { InsightsSummary } from "./summary";
 
 export function Insights() {
   const [a, setA] = useState<AnalyticsBundle | null>(null);
@@ -51,22 +52,21 @@ export function Insights() {
         </h2>
       </header>
 
-      {a.postingHeatmap && <PostingHeatmap data={a.postingHeatmap} />}
+      <InsightsSummary data={a} />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {a.contentCategories && (
-          <ContentCategories data={a.contentCategories} />
-        )}
-        {a.viralPosts && (
-          <ViralPosts posts={a.viralPosts} />
-        )}
-        {a.engagementFunnel && (
-          <EngagementFunnel data={a.engagementFunnel} />
+      {/* Most actionable insights first: viral posts + hook library */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {a.viralPosts && <ViralPosts posts={a.viralPosts} />}
+        {a.highValueComments && (
+          <HighValueQuestions comments={a.highValueComments} />
         )}
       </div>
 
-      {a.growthVelocity && <GrowthVelocity data={a.growthVelocity} />}
+      {a.hookTypes && a.topHooks && (
+        <HookAnalysis hookTypes={a.hookTypes} topHooks={a.topHooks} />
+      )}
 
+      {/* Pattern analysis */}
       <div className="grid gap-4 lg:grid-cols-2">
         {a.hashtagPerformance && (
           <HashtagPerformance data={a.hashtagPerformance} />
@@ -74,19 +74,27 @@ export function Insights() {
         {a.crossPosts && <CrossPosts data={a.crossPosts} />}
       </div>
 
+      {a.postingHeatmap && <PostingHeatmap data={a.postingHeatmap} />}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        {a.contentCategories && (
+          <ContentCategories data={a.contentCategories} />
+        )}
+        {a.engagementFunnel && (
+          <EngagementFunnel data={a.engagementFunnel} />
+        )}
+        {a.growthVelocity && (
+          <div className="lg:col-span-1">
+            <GrowthVelocity data={a.growthVelocity} />
+          </div>
+        )}
+      </div>
+
       {a.topCommenters && (
         <Superfans
           commenters={a.topCommenters}
           overlap={a.audienceOverlap}
         />
-      )}
-
-      {a.hookTypes && a.topHooks && (
-        <HookAnalysis hookTypes={a.hookTypes} topHooks={a.topHooks} />
-      )}
-
-      {a.highValueComments && (
-        <HighValueQuestions comments={a.highValueComments} />
       )}
 
       {follow && <DoesntFollowBack data={follow} />}
