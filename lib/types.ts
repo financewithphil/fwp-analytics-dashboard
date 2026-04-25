@@ -6,24 +6,28 @@ export interface Post {
   id: string;
   platform: Platform;
   type?: string; // reel | carousel | story | video | short | post
-  date: string; // ISO 8601
-  time?: string;
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:MM
+  title?: string;
   caption?: string;
-  thumbnail?: string;
+  hashtags?: string;
+  thumbnailUrl?: string;
   url?: string;
+  duration?: string;
   views: number;
   likes: number;
   comments: number;
   shares?: number;
   saves?: number;
-  engagementRate?: number;
+  engagementRate?: string | number; // stringified in raw JSON
+  notes?: string;
 }
 
 export interface Comment {
   id: string;
   postId?: string;
   platform: Platform;
-  author: string;
+  username: string;
   text: string;
   likes: number;
   date: string;
@@ -41,9 +45,19 @@ export interface FollowerSnapshot {
 
 export interface ScrapeState {
   followers: Record<Platform, number>;
-  lastScrapedDate?: string;
   lastAutoCheck?: string;
   needsRefresh?: boolean;
+  instagram?: PlatformScrapeState;
+  tiktok?: PlatformScrapeState;
+  youtube?: PlatformScrapeState;
+  threads?: PlatformScrapeState;
+}
+
+export interface PlatformScrapeState {
+  status?: string;
+  totalScraped?: number;
+  lastScrapedDate?: string;
+  lastPostId?: string;
 }
 
 export interface FollowData {

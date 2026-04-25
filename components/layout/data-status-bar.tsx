@@ -10,7 +10,19 @@ export function DataStatusBar() {
 
   useEffect(() => {
     loadScrapeState()
-      .then((s) => setLast(s.lastScrapedDate || s.lastAutoCheck))
+      .then((s) => {
+        const dates = [
+          s.instagram?.lastScrapedDate,
+          s.tiktok?.lastScrapedDate,
+          s.youtube?.lastScrapedDate,
+          s.threads?.lastScrapedDate,
+          s.lastAutoCheck,
+        ]
+          .filter(Boolean)
+          .sort()
+          .reverse();
+        setLast(dates[0]);
+      })
       .catch(() => undefined);
   }, []);
 

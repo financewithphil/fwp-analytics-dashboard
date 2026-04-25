@@ -1,11 +1,5 @@
-import { PageStub } from "@/components/layout/page-stub";
+import { Overview } from "@/components/overview/overview";
 
 export default function OverviewPage() {
-  return (
-    <PageStub
-      title="Overview"
-      subtitle="Cross-platform performance, response rate, revenue, and the last 30 days of top posts."
-      comingIn="Session 2"
-    />
-  );
+  return <Overview />;
 }

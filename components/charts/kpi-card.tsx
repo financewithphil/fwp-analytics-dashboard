@@ -1,0 +1,67 @@
+import { cn } from "@/lib/utils";
+
+interface KpiCardProps {
+  label: string;
+  value: React.ReactNode;
+  hint?: React.ReactNode;
+  trend?: { value: string; direction: "up" | "down" | "flat" };
+  emphasis?: "default" | "brand";
+  align?: "left" | "right";
+  className?: string;
+}
+
+export function KpiCard({
+  label,
+  value,
+  hint,
+  trend,
+  emphasis = "default",
+  align = "left",
+  className,
+}: KpiCardProps) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border border-border bg-card p-5 shadow-sm transition hover:border-brand/40",
+        align === "right" && "text-right",
+        className,
+      )}
+    >
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-muted">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "tabular mt-2 font-display text-3xl font-medium leading-none",
+          emphasis === "brand" ? "text-brand" : "text-ink",
+        )}
+      >
+        {value}
+      </p>
+      {(hint || trend) && (
+        <div className="mt-2 flex items-center gap-2 text-xs text-ink-muted">
+          {trend && (
+            <span
+              className={cn(
+                "tabular inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium",
+                trend.direction === "up" &&
+                  "bg-positive-soft text-positive",
+                trend.direction === "down" &&
+                  "bg-negative-soft text-negative",
+                trend.direction === "flat" && "bg-muted text-ink-muted",
+              )}
+            >
+              {trend.direction === "up"
+                ? "▲"
+                : trend.direction === "down"
+                  ? "▼"
+                  : "—"}{" "}
+              {trend.value}
+            </span>
+          )}
+          {hint && <span>{hint}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
