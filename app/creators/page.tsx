@@ -1,11 +1,5 @@
-import { PageStub } from "@/components/layout/page-stub";
+import { Creators } from "@/components/creators/creators";
 
 export default function CreatorsPage() {
-  return (
-    <PageStub
-      title="Creator Research"
-      subtitle="Track creators in your niche. Manual entry, no fabricated data."
-      comingIn="Session 6"
-    />
-  );
+  return <Creators />;
 }

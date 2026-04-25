@@ -1,11 +1,5 @@
-import { PageStub } from "@/components/layout/page-stub";
+import { ManyChat } from "@/components/manychat/manychat";
 
 export default function ManyChatPage() {
-  return (
-    <PageStub
-      title="ManyChat Flows"
-      subtitle="Automation flow library with platform, trigger, and step-by-step playbook detail."
-      comingIn="Session 6"
-    />
-  );
+  return <ManyChat />;
 }
