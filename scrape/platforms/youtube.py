@@ -21,6 +21,7 @@ from pathlib import Path
 
 from scrape.cdp import CDP, CDPError
 from scrape.handles import HANDLES
+from scrape.incremental import STOP_AFTER_KNOWN, load_existing, merge
 
 DATA_FILE = Path(__file__).resolve().parent.parent.parent / "public" / "data" / "youtube_posts.json"
 PAGE_URL = f"https://www.youtube.com/{HANDLES['youtube']}/videos"
@@ -282,32 +283,32 @@ def _scrape_tab(cdp: CDP, tab_url: str, max_pages: int, on_progress, label: str)
 
 
 def scrape(max_pages: int = 50, on_progress=None) -> dict:
+    existing, _known_ids = load_existing(DATA_FILE)
     cdp = CDP()
     posts: list[dict] = []
     try:
-        # Videos tab
         posts.extend(_scrape_tab(cdp, PAGE_URL, max_pages, on_progress, "videos"))
-        # Shorts tab
         shorts_url = PAGE_URL.replace("/videos", "/shorts")
         try:
             posts.extend(_scrape_tab(cdp, shorts_url, max_pages, on_progress, "shorts"))
         except CDPError as e:
-            # Shorts tab may not exist for every channel — keep videos and continue
             if on_progress:
                 on_progress("shorts skipped", {"reason": str(e)})
     finally:
         cdp.detach()
 
-    # Resolve relative dates
     for p in posts:
         rel = p.pop("_publishedRelative", "")
         if rel and not p.get("date"):
             p["date"] = _resolve_relative_date(rel)
 
+    merged = merge(existing, posts)
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    DATA_FILE.write_text(json.dumps(posts, indent=2))
+    DATA_FILE.write_text(json.dumps(merged, indent=2))
 
+    new_count = sum(1 for p in posts if p["id"] not in _known_ids)
     return {
-        "totalScraped": len(posts),
-        "lastPostId": posts[0]["id"] if posts else None,
+        "totalScraped": len(merged),
+        "newPosts": new_count,
+        "lastPostId": merged[0]["id"] if merged else None,
     }

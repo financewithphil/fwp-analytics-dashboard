@@ -22,6 +22,7 @@ from typing import Any
 
 from scrape.cdp import CDP, CDPError
 from scrape.handles import HANDLES
+from scrape.incremental import STOP_AFTER_KNOWN, load_existing, merge
 
 DATA_FILE = Path(__file__).resolve().parent.parent.parent / "public" / "data" / "instagram_posts.json"
 APP_ID = "936619743392459"
@@ -78,19 +79,21 @@ def _parse_post(item: dict) -> dict:
 def scrape(max_pages: int = 60, on_progress=None) -> dict:
     """Scrape posts from instagram.com/<handle>/ via Chrome CDP.
 
-    `on_progress(stage: str, info: dict)` is called periodically so the
-    HTTP server can surface live status to the dashboard.
+    Incremental: stops paginating after STOP_AFTER_KNOWN consecutive posts
+    that already exist in public/data/instagram_posts.json. New posts are
+    merged on top of the existing list (preserving engagement data from
+    older scrapes).
     """
     handle = HANDLES["instagram"]
+    existing, known_ids = load_existing(DATA_FILE)
     cdp = CDP()
     try:
         tab = cdp.open_tab(PAGE_URL)
         cdp.attach(tab)
         cdp.wait_for_load(timeout=20)
 
-        # Resolve user pk
         if on_progress:
-            on_progress("resolving user", {"handle": handle})
+            on_progress("resolving user", {"handle": handle, "existingPosts": len(existing)})
         profile = _evaluate_fetch(cdp, f"/api/v1/users/web_profile_info/?username={handle}")
         if not profile or "data" not in profile:
             raise CDPError(f"web_profile_info returned: {str(profile)[:200]}")
@@ -98,9 +101,10 @@ def scrape(max_pages: int = 60, on_progress=None) -> dict:
         pk = user["id"]
         full_name = user.get("full_name") or handle
 
-        # Page through feed
-        posts: list[dict] = []
+        new_posts: list[dict] = []
         cursor: str | None = None
+        consecutive_known = 0
+        stopped_early = False
         for page_idx in range(max_pages):
             path = f"/api/v1/feed/user/{pk}/?count=12"
             if cursor:
@@ -110,9 +114,21 @@ def scrape(max_pages: int = 60, on_progress=None) -> dict:
                 break
             items = feed.get("items") or []
             for it in items:
-                posts.append(_parse_post(it))
+                p = _parse_post(it)
+                if p["id"] in known_ids:
+                    consecutive_known += 1
+                else:
+                    consecutive_known = 0
+                    new_posts.append(p)
             if on_progress:
-                on_progress("paginating", {"page": page_idx + 1, "totalPosts": len(posts)})
+                on_progress("paginating", {
+                    "page": page_idx + 1,
+                    "newPosts": len(new_posts),
+                    "consecutiveKnown": consecutive_known,
+                })
+            if known_ids and consecutive_known >= STOP_AFTER_KNOWN:
+                stopped_early = True
+                break
             if not feed.get("more_available"):
                 break
             cursor = feed.get("next_max_id")
@@ -122,12 +138,14 @@ def scrape(max_pages: int = 60, on_progress=None) -> dict:
     finally:
         cdp.detach()
 
-    # Persist
+    merged = merge(existing, new_posts)
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    DATA_FILE.write_text(json.dumps(posts, indent=2))
+    DATA_FILE.write_text(json.dumps(merged, indent=2))
 
     return {
-        "totalScraped": len(posts),
-        "lastPostId": posts[0]["id"] if posts else None,
+        "totalScraped": len(merged),
+        "newPosts": len(new_posts),
+        "stoppedEarly": stopped_early,
+        "lastPostId": merged[0]["id"] if merged else None,
         "fullName": full_name,
     }

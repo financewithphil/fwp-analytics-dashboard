@@ -23,6 +23,7 @@ from typing import Any
 
 from scrape.cdp import CDP, CDPError
 from scrape.handles import HANDLES
+from scrape.incremental import STOP_AFTER_KNOWN, load_existing, merge
 
 DATA_FILE = Path(__file__).resolve().parent.parent.parent / "public" / "data" / "threads_posts.json"
 HANDLE = HANDLES["threads"]
@@ -180,8 +181,11 @@ def _to_post(raw: dict) -> dict:
 
 
 def scrape(max_pages: int = 80, on_progress=None) -> dict:
+    existing, known_ids = load_existing(DATA_FILE)
     cdp = CDP()
     posts_by_pk: dict[str, dict] = {}
+    consecutive_known = 0
+    stopped_early = False
 
     try:
         cdp.open_tab(PAGE_URL)
@@ -205,18 +209,27 @@ def scrape(max_pages: int = 80, on_progress=None) -> dict:
         stale_rounds = 0
         last_height = 0
         for round_idx in range(max_pages):
-            # Drain captured responses
             bodies = cdp.evaluate(_DRAIN_BODIES) or []
             new_in_round = 0
             for entry in bodies:
                 body = entry.get("body") or ""
                 for raw in _extract_posts_from_body(body):
                     pk = str(raw.get("pk") or "")
-                    if pk and pk not in posts_by_pk:
+                    if not pk:
+                        continue
+                    full_id = f"th_{pk}"
+                    if full_id in known_ids:
+                        consecutive_known += 1
+                    elif pk not in posts_by_pk:
                         posts_by_pk[pk] = raw
                         new_in_round += 1
+                        consecutive_known = 0
 
-            # Trigger more loads
+            if known_ids and consecutive_known >= STOP_AFTER_KNOWN * 4:
+                # Threads pages are big; need more known posts to be sure
+                stopped_early = True
+                break
+
             height_before = cdp.evaluate("document.body.scrollHeight") or 0
             cdp.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             time.sleep(2.0)
@@ -225,12 +238,12 @@ def scrape(max_pages: int = 80, on_progress=None) -> dict:
             if on_progress:
                 on_progress("scrolling", {
                     "round": round_idx + 1,
-                    "totalPosts": len(posts_by_pk),
+                    "newPosts": len(posts_by_pk),
                     "newInRound": new_in_round,
+                    "consecutiveKnown": consecutive_known,
                     "heightDelta": height_after - height_before,
                 })
 
-            # Stop conditions
             if height_after == last_height and new_in_round == 0:
                 stale_rounds += 1
                 if stale_rounds >= 4:
@@ -251,14 +264,16 @@ def scrape(max_pages: int = 80, on_progress=None) -> dict:
     finally:
         cdp.detach()
 
-    # Convert to dashboard Post schema and sort by date desc
-    posts = [_to_post(raw) for raw in posts_by_pk.values()]
-    posts.sort(key=lambda p: p.get("date", "") or "0", reverse=True)
+    new_posts = [_to_post(raw) for raw in posts_by_pk.values()]
+    merged = merge(existing, new_posts)
+    merged.sort(key=lambda p: p.get("date", "") or "0", reverse=True)
 
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    DATA_FILE.write_text(json.dumps(posts, indent=2))
+    DATA_FILE.write_text(json.dumps(merged, indent=2))
 
     return {
-        "totalScraped": len(posts),
-        "lastPostId": posts[0]["id"] if posts else None,
+        "totalScraped": len(merged),
+        "newPosts": len(new_posts),
+        "stoppedEarly": stopped_early,
+        "lastPostId": merged[0]["id"] if merged else None,
     }

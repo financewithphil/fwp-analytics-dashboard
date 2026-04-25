@@ -31,6 +31,7 @@ from pathlib import Path
 
 from scrape.cdp import CDP, CDPError
 from scrape.handles import HANDLES
+from scrape.incremental import STOP_AFTER_KNOWN, load_existing, merge
 
 DATA_FILE = Path(__file__).resolve().parent.parent.parent / "public" / "data" / "tiktok_posts.json"
 HANDLE = HANDLES["tiktok"]
@@ -133,6 +134,7 @@ def _to_post(tile: dict) -> dict | None:
 
 
 def scrape(max_pages: int = 80, on_progress=None) -> dict:
+    existing, known_ids = load_existing(DATA_FILE)
     cdp = CDP()
     posts_by_id: dict[str, dict] = {}
 
@@ -190,14 +192,16 @@ def scrape(max_pages: int = 80, on_progress=None) -> dict:
     finally:
         cdp.detach()
 
-    posts = list(posts_by_id.values())
-    # Sort by views desc as a stable order (we don't have dates)
-    posts.sort(key=lambda p: p.get("views", 0), reverse=True)
+    new_posts = list(posts_by_id.values())
+    merged = merge(existing, new_posts)
+    merged.sort(key=lambda p: p.get("views", 0), reverse=True)
 
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-    DATA_FILE.write_text(json.dumps(posts, indent=2))
+    DATA_FILE.write_text(json.dumps(merged, indent=2))
 
+    new_count = sum(1 for p in new_posts if p["id"] not in known_ids)
     return {
-        "totalScraped": len(posts),
-        "lastPostId": posts[0]["id"] if posts else None,
+        "totalScraped": len(merged),
+        "newPosts": new_count,
+        "lastPostId": merged[0]["id"] if merged else None,
     }
