@@ -92,7 +92,11 @@ class CDP:
     # --- WebSocket layer (per-tab debugger) ------------------------------
     def attach(self, tab: Tab) -> None:
         self.detach()
-        self.ws = websocket.create_connection(tab.ws_url, timeout=30)
+        # Chrome 111+ requires --remote-allow-origins or for the client to
+        # omit the Origin header entirely. We're not a browser, so we drop it.
+        self.ws = websocket.create_connection(
+            tab.ws_url, timeout=30, suppress_origin=True
+        )
         self._send("Page.enable")
         self._send("Runtime.enable")
 
