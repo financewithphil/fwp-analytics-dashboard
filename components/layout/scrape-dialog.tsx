@@ -124,7 +124,7 @@ export function ScrapeDialog({
         )}
 
         {health && health !== "checking" && !job && (
-          <ReadyToStart isStub />
+          <ReadyToStart isStub={health.version.startsWith("0.1")} />
         )}
 
         {job && (job.status === "queued" || job.status === "running") && (
@@ -198,12 +198,26 @@ function ReadyToStart({ isStub }: { isStub: boolean }) {
     <div className="space-y-2 text-sm text-ink-soft">
       <p>
         Re-scrapes all four platforms sequentially. The dashboard's freshness
-        timestamps will update as each platform finishes.
+        timestamps update as each platform finishes.
       </p>
+      <div className="rounded border border-border bg-muted/40 px-3 py-2 text-xs">
+        <div className="font-mono text-[10px] uppercase tracking-wider text-ink-muted">
+          Status by platform
+        </div>
+        <ul className="mt-1.5 space-y-0.5">
+          <li>
+            <span className="text-positive">●</span> Instagram — real scraper
+            (needs Chrome on :9222 + IG login)
+          </li>
+          <li>
+            <span className="text-warn">●</span> TikTok / YouTube / Threads —
+            scaffold (will error; doesn&apos;t block IG)
+          </li>
+        </ul>
+      </div>
       {isStub && (
         <div className="rounded border border-border bg-card px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-ink-muted">
-          Note · scraper currently runs as a stub (~30s) so the UX is
-          testable. Real scraping plugs into the same endpoints.
+          Note · stub mode active
         </div>
       )}
     </div>

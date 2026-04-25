@@ -24,6 +24,7 @@ Endpoints:
 from __future__ import annotations
 
 import json
+import sys
 import threading
 import time
 import uuid
@@ -32,8 +33,14 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+# Make `import scrape.*` work when running this file directly.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scrape.cdp import CDPError  # noqa: E402
+from scrape.platforms import instagram, tiktok, youtube, threads  # noqa: E402
+
 PORT = 5556
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 # Resolve paths relative to this file so it works no matter where it's run from.
 ROOT = Path(__file__).resolve().parent.parent
@@ -45,9 +52,6 @@ SCRAPE_STATE = DATA_DIR / "scrape_state.json"
 JOBS: dict[str, dict] = {}
 JOBS_LOCK = threading.Lock()
 
-# How long the stub takes to "scrape" each platform. Real scraping will
-# replace this with actual Chrome-CDP work.
-STUB_SECONDS_PER_PLATFORM = 8
 PLATFORMS = ["instagram", "tiktok", "youtube", "threads"]
 
 
@@ -73,43 +77,20 @@ def update_job(job_id: str, **fields) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Real scraper plug-points (next session) -----------------------------------
+# Platform runners ---------------------------------------------------------
 # ---------------------------------------------------------------------------
-# Each function below MUST:
-#   - return a dict with at least: {"totalScraped": int, "lastPostId": str|None}
-#   - update the JSON files under public/data/ in place when implemented
+# Each module's scrape() function:
+#   - takes (max_pages: int, on_progress: callable | None)
+#   - returns {"totalScraped": int, "lastPostId": str | None, ...}
+#   - raises CDPError on failure
 #
-# Today they sleep + return zeros so the UI flow is fully testable.
-def scrape_instagram() -> dict:
-    # TODO: Chrome CDP scrape — profile grid scroll then
-    #       /api/v1/media/{id}/info/ for play_count.
-    time.sleep(STUB_SECONDS_PER_PLATFORM)
-    return {"totalScraped": 0, "lastPostId": None}
-
-
-def scrape_tiktok() -> dict:
-    # TODO: Chrome CDP scrape — api/post/item_list cursor pagination.
-    time.sleep(STUB_SECONDS_PER_PLATFORM)
-    return {"totalScraped": 0, "lastPostId": None}
-
-
-def scrape_youtube() -> dict:
-    # TODO: Chrome CDP scrape — channel /videos page + innertube /next.
-    time.sleep(STUB_SECONDS_PER_PLATFORM)
-    return {"totalScraped": 0, "lastPostId": None}
-
-
-def scrape_threads() -> dict:
-    # TODO: Chrome CDP scrape — BarcelonaProfileThreadsTabRefetchableDirectQuery.
-    time.sleep(STUB_SECONDS_PER_PLATFORM)
-    return {"totalScraped": 0, "lastPostId": None}
-
-
+# Instagram is real (Chrome CDP via scrape/cdp.py). TikTok/YouTube/Threads
+# are scaffolds — see their files for the plug-in checklist.
 PLATFORM_RUNNERS = {
-    "instagram": scrape_instagram,
-    "tiktok": scrape_tiktok,
-    "youtube": scrape_youtube,
-    "threads": scrape_threads,
+    "instagram": instagram.scrape,
+    "tiktok": tiktok.scrape,
+    "youtube": youtube.scrape,
+    "threads": threads.scrape,
 }
 
 
@@ -119,36 +100,57 @@ def run_scrape(job_id: str, platforms: list[str]) -> None:
     update_job(job_id, status="running", currentPlatform=None, progress=0)
     state = load_scrape_state()
     completed = 0
-    try:
-        for platform in platforms:
-            runner = PLATFORM_RUNNERS.get(platform)
-            if not runner:
-                continue
-            update_job(job_id, currentPlatform=platform)
-            result = runner()
+    errors: dict[str, str] = {}
+
+    for platform in platforms:
+        runner = PLATFORM_RUNNERS.get(platform)
+        if not runner:
+            continue
+        update_job(job_id, currentPlatform=platform)
+
+        def progress(stage: str, info: dict) -> None:
+            update_job(job_id, currentStage=f"{platform}: {stage}", currentInfo=info)
+
+        try:
+            result = runner(on_progress=progress)
             sub = state.get(platform, {}) or {}
             sub["lastScrapedDate"] = now_iso()
-            sub.setdefault("status", "complete")
-            if result.get("totalScraped"):
+            sub["status"] = "complete"
+            if result.get("totalScraped") is not None:
                 sub["totalScraped"] = result["totalScraped"]
             if result.get("lastPostId"):
                 sub["lastPostId"] = result["lastPostId"]
             state[platform] = sub
             save_scrape_state(state)
-            completed += 1
-            update_job(
-                job_id,
-                progress=int(completed / len(platforms) * 100),
-            )
+        except CDPError as e:
+            errors[platform] = str(e)
+            sub = state.get(platform, {}) or {}
+            sub["status"] = "error"
+            sub["lastError"] = str(e)
+            state[platform] = sub
+            save_scrape_state(state)
+        except Exception as e:  # noqa: BLE001
+            errors[platform] = f"{type(e).__name__}: {e}"
+
+        completed += 1
         update_job(
             job_id,
-            status="complete",
-            currentPlatform=None,
-            progress=100,
-            completedAt=now_iso(),
+            progress=int(completed / len(platforms) * 100),
+            errors=errors if errors else None,
         )
-    except Exception as exc:  # noqa: BLE001
-        update_job(job_id, status="error", error=str(exc), completedAt=now_iso())
+
+    final_status = "complete" if not errors else (
+        "complete" if len(errors) < len(platforms) else "error"
+    )
+    update_job(
+        job_id,
+        status=final_status,
+        currentPlatform=None,
+        currentStage=None,
+        progress=100,
+        completedAt=now_iso(),
+        errors=errors if errors else None,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -222,7 +224,9 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         job_id = uuid.uuid4().hex[:12]
-        eta_seconds = STUB_SECONDS_PER_PLATFORM * len(platforms)
+        # Real scraping ETA is variable. ~3 minutes per platform is a
+        # reasonable conservative estimate (IG ~2-5 min for ~700 posts).
+        eta_seconds = 180 * len(platforms)
         job = {
             "id": job_id,
             "status": "queued",
@@ -230,8 +234,9 @@ class Handler(BaseHTTPRequestHandler):
             "startedAt": now_iso(),
             "etaSeconds": eta_seconds,
             "currentPlatform": None,
+            "currentStage": None,
             "progress": 0,
-            "isStub": True,
+            "isStub": False,
         }
         with JOBS_LOCK:
             JOBS[job_id] = job
@@ -249,7 +254,8 @@ class Handler(BaseHTTPRequestHandler):
 def main() -> None:
     print(f"FWP Scraper service v{VERSION} on http://localhost:{PORT}")
     print(f"  data dir: {DATA_DIR}")
-    print(f"  STUB MODE: each platform sleeps {STUB_SECONDS_PER_PLATFORM}s")
+    print("  Instagram: REAL Chrome-CDP scraper (needs Chrome on :9222)")
+    print("  TikTok / YouTube / Threads: scaffolds — see scrape/platforms/")
     print("  endpoints: GET /ping  POST /scrape  GET /scrape-status?id=<jobId>")
     HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
 

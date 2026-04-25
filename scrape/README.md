@@ -1,67 +1,83 @@
 # FWP Scraper Service
 
-Tiny stdlib-only HTTP service the dashboard's Refresh button calls to
-re-scrape Instagram / TikTok / YouTube / Threads.
+Stdlib + websocket-client HTTP service the dashboard's Refresh button calls
+to re-scrape Instagram / TikTok / YouTube / Threads.
+
+## Setup (one-time)
+
+```bash
+pip install websocket-client     # tiny Chrome CDP client dep
+```
 
 ## Run it
 
 ```bash
-python3 scrape/server.py
-# → http://localhost:5556
+# 1. Quit Chrome completely (so it can restart with debug enabled)
+osascript -e 'quit app "Google Chrome"'
+
+# 2. Restart Chrome with the debugging port open. Use a separate user-data
+#    dir so it doesn't conflict with your normal Chrome profile.
+open -na "Google Chrome" --args \
+  --remote-debugging-port=9222 \
+  --user-data-dir="$HOME/.fwp-chrome-debug"
+
+# 3. In that new Chrome window, log in to:
+#    - https://www.instagram.com/  (real one, your account)
+#    - https://www.tiktok.com/     (when TT scraper is plugged in)
+#    - https://www.youtube.com/    (when YT scraper is plugged in)
+#    - https://www.threads.net/    (when TH scraper is plugged in)
+
+# 4. Start the scraper service
+python3 ~/projects/fwp-analytics-dashboard/scrape/server.py
 ```
 
-The dashboard auto-detects the service via `/ping`. The button shows a
-clear "service not running" message when it's offline so you always
-know the state.
+Then open the dashboard and click `↻ Refresh data` in the header.
+
+## Status of each platform
+
+| Platform | Status | Notes |
+|---|---|---|
+| Instagram | **REAL** | Live. Uses `/api/v1/users/web_profile_info` + `/api/v1/feed/user/<pk>/` via Chrome CDP. Logged-in cookies in your Chrome profile authorize the requests. |
+| TikTok | Scaffold | Raises CDPError. See `scrape/platforms/tiktok.py` for the plug-in checklist. |
+| YouTube | Scaffold | Raises CDPError. See `scrape/platforms/youtube.py` for the plug-in checklist. |
+| Threads | Scaffold | Raises CDPError. See `scrape/platforms/threads.py` for the plug-in checklist. |
+
+When a scaffolded platform fails, the dashboard's job record marks it as
+errored, but other platforms still run + complete. The freshness badges
+update for whichever platforms succeed.
 
 ## Endpoints
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/ping` | Health check — returns `{"ok": true, "version": "0.1.0"}` |
-| POST | `/scrape` | Queue a scrape. Body: `{"platforms": [...]}` (optional). Returns the job. |
+| GET | `/ping` | Health check |
+| POST | `/scrape` | Queue a scrape. Body: `{"platforms": [...]}` (optional, defaults to all) |
 | GET | `/scrape-status?id=<jobId>` | Poll job state |
 | GET | `/jobs` | Last 20 jobs |
 
-Job shape:
-```json
-{
-  "id": "abc123",
-  "status": "queued|running|complete|error",
-  "platforms": ["instagram", "tiktok", "youtube", "threads"],
-  "startedAt": "2026-04-25T20:01:33+00:00",
-  "etaSeconds": 32,
-  "currentPlatform": "instagram",
-  "progress": 25,
-  "isStub": true
-}
+## Where stuff lives
+
+```
+scrape/
+├── server.py              HTTP service (port 5556)
+├── cdp.py                 Minimal Chrome DevTools Protocol client
+├── handles.py             Phil's per-platform handles
+├── platforms/
+│   ├── instagram.py       REAL scraper
+│   ├── tiktok.py          Scaffold
+│   ├── youtube.py         Scaffold
+│   └── threads.py         Scaffold
+└── README.md
 ```
 
-## Status
+## Plug-in steps for the remaining platforms
 
-**This is a STUB.** Each platform's `scrape_*()` function sleeps for 8
-seconds and updates `public/data/scrape_state.json` with a fresh
-`lastScrapedDate`. The dashboard's UI flow is fully working — modals,
-polling, completion banners, freshness badges all behave exactly as
-they will once real scraping is wired in.
+Each scaffold has a checklist comment. The pattern is always:
 
-## Plug in real scrapers
-
-Each `scrape_<platform>()` function in `server.py` must:
-
-1. Run the actual Chrome CDP work (port 9222 must be open + Phil
-   logged in).
-2. Write the new posts to `public/data/<platform>_posts.json`.
-3. Return `{"totalScraped": int, "lastPostId": str | None}` — the
-   service writes both into `scrape_state.json` automatically.
-
-Reference for the original scraping methods (one-shot 2026-03-28):
-- **Instagram:** profile grid scroll → `/api/v1/media/{id}/info/`
-- **TikTok:** `api/post/item_list` cursor pagination
-- **YouTube:** channel `/videos` page + innertube `/next`
-- **Threads:** GraphQL `BarcelonaProfileThreadsTabRefetchableDirectQuery`
-
-## Configuration
-
-`STUB_SECONDS_PER_PLATFORM` at the top of `server.py` controls the
-fake job duration. Set lower to test the UI faster.
+1. Open the platform in Chrome (logged in).
+2. Use DevTools → Network to capture the actual request your browser
+   makes to load the data you want.
+3. Replicate that request via `cdp._evaluate_fetch()` (which runs
+   `fetch()` in the page context — cookies + CSRF tokens come for free).
+4. Map the response shape to the `Post` schema (see `instagram._parse_post`).
+5. Persist to `public/data/<platform>_posts.json`.
