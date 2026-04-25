@@ -1,0 +1,64 @@
+// Client for the local scraper service (port 5556). Returns null / false
+// when the service is offline so the UI degrades cleanly.
+
+export const SCRAPER_URL = "http://localhost:5556";
+
+export interface ScrapeJob {
+  id: string;
+  status: "queued" | "running" | "complete" | "error";
+  platforms: string[];
+  startedAt: string;
+  etaSeconds: number;
+  currentPlatform: string | null;
+  progress: number;
+  completedAt?: string;
+  error?: string;
+  isStub?: boolean;
+}
+
+export interface ScraperHealth {
+  ok: boolean;
+  version: string;
+}
+
+export async function pingScraper(): Promise<ScraperHealth | null> {
+  try {
+    const res = await fetch(`${SCRAPER_URL}/ping`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(1500),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as ScraperHealth;
+  } catch {
+    return null;
+  }
+}
+
+export async function startScrape(
+  platforms?: string[],
+): Promise<ScrapeJob | null> {
+  try {
+    const res = await fetch(`${SCRAPER_URL}/scrape`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(platforms ? { platforms } : {}),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as ScrapeJob;
+  } catch {
+    return null;
+  }
+}
+
+export async function getScrapeStatus(jobId: string): Promise<ScrapeJob | null> {
+  try {
+    const res = await fetch(
+      `${SCRAPER_URL}/scrape-status?id=${encodeURIComponent(jobId)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as ScrapeJob;
+  } catch {
+    return null;
+  }
+}
