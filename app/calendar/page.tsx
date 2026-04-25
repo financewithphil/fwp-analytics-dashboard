@@ -1,11 +1,5 @@
-import { PageStub } from "@/components/layout/page-stub";
+import { Calendar } from "@/components/calendar/calendar";
 
 export default function CalendarPage() {
-  return (
-    <PageStub
-      title="Content Calendar"
-      subtitle="Month grid with platform-coded events and an upcoming-content queue."
-      comingIn="Session 5"
-    />
-  );
+  return <Calendar />;
 }
