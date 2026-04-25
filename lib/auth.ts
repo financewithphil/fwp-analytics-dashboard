@@ -8,10 +8,10 @@ const FALLBACK_PIN_HASH =
   "9baed8fceea6e36d36670d72429d909547165efc038c293a14a41ef2edf83141";
 
 export function getExpectedHash(): string {
-  return (
-    process.env.NEXT_PUBLIC_DASHBOARD_PIN_HASH?.toLowerCase() ??
-    FALLBACK_PIN_HASH
-  );
+  // GitHub Actions interpolates an unset secret to an empty string, so we
+  // explicitly check for that case in addition to undefined.
+  const envHash = process.env.NEXT_PUBLIC_DASHBOARD_PIN_HASH?.trim();
+  return envHash ? envHash.toLowerCase() : FALLBACK_PIN_HASH;
 }
 
 export async function sha256(input: string): Promise<string> {
