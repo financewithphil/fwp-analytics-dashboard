@@ -25,7 +25,10 @@ async function fetchJson<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   }
 }
 
-const DATA_BASE = "/data";
+// In production, GitHub Pages serves the site at /<basePath>/ — raw fetch()
+// calls don't get auto-prefixed by Next.js, so we have to do it ourselves.
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const DATA_BASE = `${BASE_PATH}/data`;
 
 export const dataPaths = {
   instagram: `${DATA_BASE}/instagram_posts.json`,
