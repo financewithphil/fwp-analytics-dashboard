@@ -160,8 +160,15 @@ export interface GrowthMonth {
   comments: number;
 }
 
+export interface CrossPlatformUser {
+  username: string;
+  platforms: Platform[];
+  commentCount: number;
+  totalLikes: number;
+}
+
 export interface AudienceOverlap {
-  crossPlatformUsers: number;
+  crossPlatformUsers: CrossPlatformUser[];
   totalUniqueUsers: number;
   platformBreakdown: Record<string, number>;
 }

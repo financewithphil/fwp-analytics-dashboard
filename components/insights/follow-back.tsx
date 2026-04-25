@@ -2,7 +2,7 @@
 
 import { Section } from "@/components/charts/section";
 import { useState } from "react";
-import { fmt, platformLabel } from "@/lib/format";
+import { fmt, fmtDate, platformLabel, relativeTime } from "@/lib/format";
 import type { FollowData, Platform } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -16,11 +16,16 @@ export function DoesntFollowBack({ data }: FollowBackProps) {
   const [active, setActive] = useState<Platform>("instagram");
   const platformData = data[active];
   const list = platformData?.dontFollowBack ?? [];
+  const scrapedAt = platformData?.scrapedAt ?? undefined;
 
   return (
     <Section
       title="Doesn't Follow Back"
-      hint="Accounts you follow that don't follow you"
+      hint={
+        scrapedAt
+          ? `Snapshot from ${fmtDate(scrapedAt)} (${relativeTime(scrapedAt)}) — re-scrape to refresh`
+          : "Accounts you follow that don't follow you"
+      }
       action={
         <div className="flex gap-1 rounded border border-border p-0.5">
           {TABS.map((t) => {
@@ -44,6 +49,12 @@ export function DoesntFollowBack({ data }: FollowBackProps) {
       }
       bodyClassName="-mx-5 max-h-[420px] overflow-y-auto"
     >
+      {scrapedAt && (
+        <div className="mx-5 mb-2 -mt-2 rounded border border-warn/40 bg-warn-soft px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-warn">
+          Stale snapshot · last scraped {relativeTime(scrapedAt)} · numbers
+          will not reflect follows / unfollows you've made since
+        </div>
+      )}
       {list.length === 0 ? (
         <div className="py-8 text-center text-sm text-ink-muted">
           {platformData?.note || "No data for this platform yet."}
