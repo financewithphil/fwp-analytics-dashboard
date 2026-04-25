@@ -244,25 +244,6 @@ export interface Deal {
   notes?: string;
 }
 
-export interface Flow {
-  id: string;
-  name: string;
-  platform: Platform | "multi";
-  type: "lead_capture" | "engagement" | "sales";
-  description: string;
-  trigger: string;
-  steps: Array<{ type: string; text: string }>;
-}
-
-export interface CalendarEvent {
-  id: string;
-  date: string; // YYYY-MM-DD
-  platform: Platform;
-  type: string;
-  title: string;
-  status: "planned" | "draft" | "scheduled" | "posted";
-}
-
 export interface CreatorRecord {
   id: string;
   handle: string;
@@ -271,13 +252,4 @@ export interface CreatorRecord {
   followers: number;
   followersChange?: number;
   followers7d?: number;
-}
-
-export interface ContentItem {
-  id: string;
-  filename: string;
-  status: "inbox" | "analyzed" | "captioned" | "ready" | "posted";
-  platforms: Partial<Record<Platform, { caption?: string }>>;
-  posted_to?: Platform[];
-  timestamps?: Record<string, string>;
 }

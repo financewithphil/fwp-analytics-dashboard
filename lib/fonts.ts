@@ -1,22 +1,9 @@
-import { Geist, Newsreader, JetBrains_Mono } from "next/font/google";
-
-export const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-export const newsreader = Newsreader({
-  variable: "--font-newsreader",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  display: "swap",
-});
-
-export const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
+// V1 used the native system stack — no custom fonts. We keep the same
+// CSS variable names so globals.css doesn't have to know the difference.
+//
+// next/font is no longer used; the variables are populated with literal
+// font-family stacks in globals.css.
+export const SYSTEM_SANS =
+  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+export const SYSTEM_MONO =
+  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';

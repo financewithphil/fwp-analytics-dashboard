@@ -10,10 +10,6 @@ const TABS = [
   { href: "/comments", label: "Comments" },
   { href: "/insights", label: "Insights" },
   { href: "/creators", label: "Creator Research" },
-  { href: "/thumbnails", label: "Thumbnails" },
-  { href: "/calendar", label: "Calendar" },
-  { href: "/manychat", label: "ManyChat Flows" },
-  { href: "/studio", label: "Content Studio" },
   { href: "/deals", label: "Brand Deals" },
 ] as const;
 
