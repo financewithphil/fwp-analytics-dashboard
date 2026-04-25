@@ -1,0 +1,149 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-display: var(--font-newsreader);
+  --font-heading: var(--font-newsreader);
+
+  /* shadcn semantic tokens (mapped to FWP palette below) */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* FWP-specific tokens */
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-deep: var(--brand-deep);
+  --color-positive: var(--positive);
+  --color-positive-soft: var(--positive-soft);
+  --color-negative: var(--negative);
+  --color-negative-soft: var(--negative-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-ig: var(--ig);
+  --color-tt: var(--tt);
+  --color-yt: var(--yt);
+  --color-th: var(--th);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-muted: var(--ink-muted);
+
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
+}
+
+:root {
+  /* === FWP Brand Palette ====================================== */
+  /* Background: light brand blue — calm, trustworthy, distinctive */
+  --background: #eaf3fb;
+  --foreground: #0a1628;
+
+  /* Surfaces */
+  --card: #ffffff;
+  --card-foreground: #0a1628;
+  --popover: #ffffff;
+  --popover-foreground: #0a1628;
+
+  /* Brand-blue family (single dominant accent) */
+  --brand: #1e6fd9;
+  --brand-soft: #dbeafe;
+  --brand-deep: #0b3d91;
+
+  /* shadcn primary maps to brand */
+  --primary: #1e6fd9;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5fb;
+  --secondary-foreground: #0a1628;
+  --muted: #f1f5fb;
+  --muted-foreground: #64748b;
+  --accent: #dbeafe;
+  --accent-foreground: #0b3d91;
+
+  /* Borders, inputs, focus ring */
+  --border: #cfdce9;
+  --input: #cfdce9;
+  --ring: #1e6fd9;
+
+  /* Finance signaling — sparse, high-meaning */
+  --positive: #16a34a;
+  --positive-soft: #dcfce7;
+  --negative: #dc2626;
+  --negative-soft: #fee2e2;
+  --warn: #d97706;
+  --warn-soft: #fef3c7;
+  --destructive: #dc2626;
+
+  /* Typography helpers */
+  --ink: #0a1628;
+  --ink-soft: #334155;
+  --ink-muted: #64748b;
+
+  /* Per-platform brand colors (used sparingly in badges) */
+  --ig: #c13584;
+  --tt: #111111;
+  --yt: #cc0000;
+  --th: #0a1628;
+
+  /* Recharts series — brand-blue family + accents */
+  --chart-1: #1e6fd9;
+  --chart-2: #0b3d91;
+  --chart-3: #16a34a;
+  --chart-4: #d97706;
+  --chart-5: #c13584;
+
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+  html {
+    @apply font-sans;
+  }
+  /* Editorial display type */
+  .font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    letter-spacing: -0.015em;
+  }
+  /* Tabular figures for KPIs and data tables */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Thin rules for data tables (no rounded corners on data) */
+  .data-table {
+    border-radius: 0;
+  }
+}

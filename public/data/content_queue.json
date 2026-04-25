@@ -1,0 +1,62 @@
+[
+  {
+    "id": "content_dd8cb226",
+    "filename": "AITIA AT3.mp4",
+    "path": "/Users/phillipkaraya/Content Studio/AITIA AT3.mp4",
+    "folder": "/Users/phillipkaraya/Content Studio",
+    "addedDate": "2026-03-29",
+    "status": "ready",
+    "duration": "1:13",
+    "durationSecs": 73.406667,
+    "resolution": "1920x1080",
+    "codec": "h264",
+    "fileSize": "182.7 MB",
+    "fileSizeBytes": 182740088,
+    "thumbnail": "/9j/4AAQSkZJRgABAgAAAQABAAD//gAQTGF2YzYyLjI4LjEwMAD/2wBDAAgGBgcGBwgICAgICAkJCQoKCgkJCQkKCgoKCgoMDAwKCgoKCgoKDAwMDA0ODQ0NDA0ODg8PDxISEREVFRUZGR//xABLAAEBAAAAAAAAAAAAAAAAAAAACAEBAAAAAAAAAAAAAAAAAAAAABABAAAAAAAAAAAAAAAAAAAAABEBAAAAAAAAAAAAAAAAAAAAAP/AABEIALQBQAMBIgACEQADEQD/2gAMAwEAAhEDEQA/AJ/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB//9k=",
+    "analysis": {
+      "hookScore": 3,
+      "viralScore": 6,
+      "hookType": "visual",
+      "contentCategory": "real_estate_investing",
+      "strengths": [
+        "Authentic renovation footage \u2014 not staged",
+        "Multiple angles (wide exterior, interior walkthrough, close-up roofing)",
+        "Good progression showing the work being done",
+        "Before/during content performs well on all platforms"
+      ],
+      "improvements": [
+        "Cut the black opening \u2014 start with the most dramatic shot immediately",
+        "Add bold text overlay in first 2s (e.g. \"We replaced this entire roof in 1 day\")",
+        "Trim to 30-45s for IG Reels/TikTok/Shorts (current 1:13 is too long for algorithm push)",
+        "Add before/after split if you have the footage",
+        "Add voiceover or music \u2014 silent renovation clips get skipped",
+        "Close-up shingle shot is strong \u2014 consider opening with it"
+      ],
+      "suggestedLength": {
+        "instagram": "15-30s (algorithm favors 7-30s for discovery)",
+        "tiktok": "21-34s (sweet spot for viral, completion rate peaks here)",
+        "youtube": "30-60s (Shorts algo rewards 20-60s, 50-60s gets 22x more views than <10s)",
+        "threads": "15-30s (engagement drops sharply after 60s)"
+      },
+      "platformMaxLength": {
+        "instagram": "20 min (but algo pushes <30s)",
+        "tiktok": "60 min upload / 10 min in-app (algo pushes 21-34s)",
+        "youtube": "3 min for Shorts (algo pushes 20-60s)",
+        "threads": "5 min (algo pushes <60s)"
+      }
+    },
+    "captions": {
+      "instagram": "This is what real estate investing looks like behind the scenes \ud83c\udfe0\ud83d\udd28\n\nNew roof. New life. This property needed serious work \u2014 so we got a crew up there and handled it.\n\nMost people talk about passive income. Few show you the sweat equity that gets you there.\n\nWould you take on a project like this? \ud83d\udc47\n\n#realestateinvesting #fixandflip #propertyrehab #roofing #sweatequity #realestate #investinginrealestate #renovation #houseflip #wealthbuilding",
+      "tiktok": "This is what real estate investing actually looks like \ud83c\udfe0\ud83d\udd28 New roof day on this property \u2014 sweat equity is how you build real wealth. Would you take this on? #realestateinvesting #fixandflip #propertyrehab #roofing #sweatequity #houseflip",
+      "youtube": "New Roof Day \u2014 Real Estate Investing Behind the Scenes\nThis is what they don't show you about real estate investing. We got a full crew up on this property to replace the entire roof. Sweat equity is how you build real wealth \u2014 not just talking about passive income, but actually putting in the work. Would you take on a project like this? Drop a comment below.\n\n#realestateinvesting #fixandflip #propertyrehab #roofing #renovation #houseflip #wealthbuilding",
+      "threads": "This is what real estate investing actually looks like. New roof. New life. Sweat equity > talking about passive income. Would you take on a project like this?"
+    },
+    "platforms": [
+      "instagram",
+      "tiktok",
+      "youtube",
+      "threads"
+    ],
+    "postedTo": {}
+  }
+]
