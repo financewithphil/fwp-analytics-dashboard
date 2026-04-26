@@ -9,9 +9,9 @@ const TABS = [
   { href: "/posts", label: "Post Analysis" },
   { href: "/comments", label: "Comments" },
   { href: "/insights", label: "Insights" },
-  { href: "/creators", label: "Creator Research" },
   { href: "/deals", label: "Brand Deals" },
   { href: "/content-analyzer", label: "Content Analyzer" },
+  { href: "/montage", label: "Montage Studio" },
 ] as const;
 
 export function Nav() {
