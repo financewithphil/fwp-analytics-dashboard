@@ -102,15 +102,16 @@ function BreakdownCard({ label, accent, text, segments, frames, timeLabel, secti
 
   return (
     <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-      <div className="p-4 flex items-start gap-3">
-        <div className="w-9 h-9 rounded-md flex items-center justify-center text-sm font-bold shrink-0" style={{ background: accent, color: "#fff" }}>
+      {/* Header */}
+      <div className="p-5 flex items-start gap-4">
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold shrink-0" style={{ background: accent, color: "#fff" }}>
           {label[0]}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2.5 mb-1.5">
             <span className="text-sm font-semibold text-ink">{label}</span>
-            <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-background text-ink-muted">{timeLabel}</span>
-            {frames.length > 0 && <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-background text-ink-muted">{frames.length} frames</span>}
+            <span className="font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-background text-ink-muted">{timeLabel}</span>
+            {frames.length > 0 && <span className="font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-background text-ink-muted">{frames.length} frames</span>}
           </div>
           <p className="text-sm text-ink-soft leading-relaxed">
             {text ? (text.length > 300 ? text.slice(0, 300) + "..." : text) : <em className="text-ink-muted">No transcript in this section.</em>}
@@ -120,22 +121,22 @@ function BreakdownCard({ label, accent, text, segments, frames, timeLabel, secti
 
       {/* Frame grid with descriptions */}
       {frames.length > 0 && (
-        <div className="px-4 pb-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="px-5 pb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {visible.map((f, i) => (
-              <div key={i} className="rounded-md overflow-hidden border border-border bg-background">
+              <div key={i} className="rounded-lg overflow-hidden border border-border bg-background">
                 <div className="relative">
                   <img src={`data:image/jpeg;base64,${f.base64}`} alt="" className="w-full aspect-video object-cover" />
-                  <div className="absolute bottom-0 inset-x-0 px-1.5 py-0.5 text-[9px] font-mono font-semibold" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.7))", color: accent }}>{f.timestampFormatted}</div>
+                  <div className="absolute bottom-0 inset-x-0 px-2 py-1 text-[9px] font-mono font-semibold" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.7))", color: accent }}>{f.timestampFormatted}</div>
                 </div>
-                <div className="px-2 py-1.5">
+                <div className="px-2.5 py-2">
                   <p className="text-[10px] text-ink-soft leading-snug">{describeFrame(i, frames.length, sectionKey)}</p>
                 </div>
               </div>
             ))}
           </div>
           {frames.length > 4 && (
-            <button onClick={() => setShowAll(!showAll)} className="mt-1.5 text-[11px] font-medium hover:underline" style={{ color: accent }}>
+            <button onClick={() => setShowAll(!showAll)} className="mt-2 text-[11px] font-medium hover:underline" style={{ color: showAll ? undefined : accent }}>
               {showAll ? "Collapse" : `Show all ${frames.length} frames`}
             </button>
           )}
@@ -145,15 +146,15 @@ function BreakdownCard({ label, accent, text, segments, frames, timeLabel, secti
       {/* Expandable segments */}
       {segments.length > 0 && (
         <div className="border-t border-border">
-          <button onClick={() => setExpanded(!expanded)} className="w-full px-4 py-2 text-[11px] font-mono text-ink-muted flex items-center gap-1.5 hover:bg-background/50 transition-colors">
+          <button onClick={() => setExpanded(!expanded)} className="w-full px-5 py-2.5 text-[11px] font-mono text-ink-muted flex items-center gap-1.5 hover:bg-background/50 transition-colors">
             <ChevronRight className={cn("w-3 h-3 transition-transform", expanded && "rotate-90")} />
             {segments.length} segment{segments.length !== 1 ? "s" : ""} &middot; {segments.map(s => s.text).join(" ").split(/\s+/).filter(Boolean).length} words
           </button>
           {expanded && (
-            <div className="px-4 pb-3 space-y-1">
+            <div className="px-5 pb-4 space-y-1">
               {segments.map((seg, i) => (
-                <div key={i} className="flex gap-2.5 py-1 text-xs">
-                  <span className="tabular font-mono shrink-0 w-11 text-right font-semibold" style={{ color: accent }}>{fmtTime(seg.start)}</span>
+                <div key={i} className="flex gap-3 py-1.5 text-xs">
+                  <span className="tabular font-mono shrink-0 w-12 text-right font-semibold" style={{ color: accent }}>{fmtTime(seg.start)}</span>
                   <span className="text-ink">{seg.text}</span>
                 </div>
               ))}
@@ -228,81 +229,93 @@ export function ContentAnalyzer() {
   /* ── Upload view ── */
   if (view === "upload" || loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-display text-xl font-medium text-ink">Content Analyzer</h2>
-            <p className="text-sm text-ink-muted mt-0.5">Upload a video or paste a link &mdash; local frame extraction + whisper transcription</p>
+      <div className="flex flex-col items-center">
+        <div className="w-full max-w-2xl space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-display text-xl font-medium text-ink">Content Analyzer</h2>
+              <p className="text-sm text-ink-muted mt-0.5">Upload a video or paste a link &mdash; local frame extraction + whisper transcription</p>
+            </div>
+            <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-md hover:bg-border/40 transition-colors text-ink-muted">
+              <Settings2 className="w-4 h-4" />
+            </button>
           </div>
-          <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-md hover:bg-border/40 transition-colors text-ink-muted">
-            <Settings2 className="w-4 h-4" />
-          </button>
-        </div>
 
-        {showSettings && (
-          <Section title="API Configuration" hint="Video Vision backend URL">
-            <div className="flex gap-2">
-              <Input value={apiBase} onChange={(e) => setApiBase(e.target.value)} placeholder="http://localhost:3001" className="font-mono text-xs" />
-              <Button variant="outline" size="sm" onClick={() => setApiBase(DEFAULT_API)}>Reset</Button>
-            </div>
-          </Section>
-        )}
-
-        {loading ? (
-          <Section title="Processing">
-            <div className="flex flex-col items-center py-16 gap-4">
-              <Loader2 className="w-8 h-8 text-brand animate-spin" />
-              <div className="text-center">
-                <p className="text-sm font-medium text-ink">{statusMsg}</p>
-                <p className="text-xs text-ink-muted mt-1">ffmpeg + whisper-cpp &middot; running locally</p>
-              </div>
-            </div>
-          </Section>
-        ) : (
-          <>
-            {/* Drop zone */}
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => fileRef.current?.click()}
-              className={cn(
-                "cursor-pointer rounded-lg border-2 border-dashed p-14 flex flex-col items-center gap-4 transition-all bg-card",
-                dragOver ? "border-brand bg-brand/5" : "border-border hover:border-brand/40",
-              )}
-            >
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-brand/10 text-brand">
-                <Upload className="w-6 h-6" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-ink">Drop a video file here</p>
-                <p className="text-xs text-ink-muted mt-1">or click to browse &mdash; MP4, MOV, AVI, MKV, WebM</p>
-              </div>
-              <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-            </div>
-
-            {/* URL input */}
-            <Section title="Or paste a video link">
+          {showSettings && (
+            <Section title="API Configuration" hint="Video Vision backend URL">
               <div className="flex gap-2">
+                <Input value={apiBase} onChange={(e) => setApiBase(e.target.value)} placeholder="http://localhost:3001" className="font-mono text-xs" />
+                <Button variant="outline" size="sm" onClick={() => setApiBase(DEFAULT_API)}>Reset</Button>
+              </div>
+            </Section>
+          )}
+
+          {loading ? (
+            <div className="rounded-lg border border-border bg-card shadow-sm">
+              <div className="flex flex-col items-center py-20 gap-5">
+                <div className="relative w-16 h-16">
+                  <div className="absolute inset-0 rounded-xl bg-brand/10 animate-pulse" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="w-7 h-7 text-brand animate-spin" />
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-ink">{statusMsg}</p>
+                  <p className="text-xs text-ink-muted mt-1">ffmpeg + whisper-cpp &middot; running locally</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Drop zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileRef.current?.click()}
+                className={cn(
+                  "cursor-pointer rounded-xl border-2 border-dashed px-8 py-16 flex flex-col items-center gap-5 transition-all bg-card",
+                  dragOver ? "border-brand bg-brand/5 shadow-lg" : "border-border hover:border-brand/40",
+                )}
+              >
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-brand/10 text-brand">
+                  <Upload className="w-7 h-7" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-ink">Drop a video file here</p>
+                  <p className="text-xs text-ink-muted mt-1">or click to browse &mdash; MP4, MOV, AVI, MKV, WebM</p>
+                </div>
+                <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-border" />
+                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-ink-muted">or paste a link</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              {/* URL input */}
+              <div className="flex gap-2.5">
                 <div className="flex-1 relative">
-                  <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted" />
+                  <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted" />
                   <Input
                     type="url" value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleUrl()}
                     placeholder="https://example.com/video.mp4"
-                    className="pl-9 font-mono text-xs"
+                    className="pl-10 py-3 font-mono text-xs h-auto"
                   />
                 </div>
-                <Button onClick={handleUrl} disabled={!url.trim()}>Analyze</Button>
+                <Button onClick={handleUrl} disabled={!url.trim()} className="px-6 h-auto">Analyze</Button>
               </div>
-            </Section>
 
-            {error && (
-              <div className="rounded-lg border border-negative/20 bg-negative/5 px-4 py-3 text-sm text-negative">{error}</div>
-            )}
-          </>
-        )}
+              {error && (
+                <div className="rounded-lg border border-negative/20 bg-negative/5 px-4 py-3 text-sm text-negative">{error}</div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     );
   }
@@ -311,11 +324,11 @@ export function ContentAnalyzer() {
   if (!result) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={reset} className="p-1.5 rounded-md hover:bg-border/40 transition-colors text-ink-muted"><ArrowLeft className="w-4 h-4" /></button>
+          <button onClick={reset} className="p-2 rounded-lg hover:bg-border/40 transition-colors text-ink-muted"><ArrowLeft className="w-4 h-4" /></button>
           <div>
             <h2 className="font-display text-xl font-medium text-ink">{result.metadata.filename}</h2>
             <p className="text-xs text-ink-muted mt-0.5 font-mono">
@@ -334,7 +347,7 @@ export function ContentAnalyzer() {
       </div>
 
       {/* Tab bar */}
-      <div className="-mx-0 overflow-x-auto">
+      <div className="overflow-x-auto">
         <div className="flex gap-1 border-b border-border min-w-max">
           {rTabs.map(t => (
             <button key={t.key} onClick={() => setResultTab(t.key)} className={cn("relative px-4 py-2.5 text-sm font-medium transition-colors", resultTab === t.key ? "text-brand" : "text-ink-muted hover:text-ink")}>
@@ -373,17 +386,17 @@ export function ContentAnalyzer() {
           {selectedFrame !== null && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80" onClick={() => setSelectedFrame(null)}>
               <div className="relative max-w-5xl w-full" onClick={e => e.stopPropagation()}>
-                <img src={`data:image/jpeg;base64,${result.frames[selectedFrame].base64}`} alt="" className="w-full rounded-lg shadow-2xl" />
-                <div className="absolute bottom-4 left-4 px-3 py-1.5 rounded-md text-xs font-mono font-semibold bg-black/60 text-white backdrop-blur-sm">{result.frames[selectedFrame].timestampFormatted}</div>
-                {selectedFrame > 0 && <button onClick={() => setSelectedFrame(selectedFrame - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-sm"><ArrowLeft className="w-4 h-4" /></button>}
-                {selectedFrame < result.frames.length - 1 && <button onClick={() => setSelectedFrame(selectedFrame + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-sm"><ArrowRight className="w-4 h-4" /></button>}
-                <button onClick={() => setSelectedFrame(null)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-sm"><X className="w-4 h-4" /></button>
+                <img src={`data:image/jpeg;base64,${result.frames[selectedFrame].base64}`} alt="" className="w-full rounded-xl shadow-2xl" />
+                <div className="absolute bottom-4 left-4 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-black/60 text-white backdrop-blur-sm">{result.frames[selectedFrame].timestampFormatted}</div>
+                {selectedFrame > 0 && <button onClick={() => setSelectedFrame(selectedFrame - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-sm hover:bg-black/70 transition-colors"><ArrowLeft className="w-4 h-4" /></button>}
+                {selectedFrame < result.frames.length - 1 && <button onClick={() => setSelectedFrame(selectedFrame + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-sm hover:bg-black/70 transition-colors"><ArrowRight className="w-4 h-4" /></button>}
+                <button onClick={() => setSelectedFrame(null)} className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-sm hover:bg-black/70 transition-colors"><X className="w-4 h-4" /></button>
               </div>
             </div>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {result.frames.map((frame, i) => (
-              <div key={i} className="group relative rounded-lg overflow-hidden cursor-pointer border border-border bg-card shadow-sm transition-all hover:border-brand/40 hover:scale-[1.02]" onClick={() => setSelectedFrame(i)}>
+              <div key={i} className="group relative rounded-lg overflow-hidden cursor-pointer border border-border bg-card shadow-sm transition-all hover:border-brand/40 hover:scale-[1.03] hover:shadow-md" onClick={() => setSelectedFrame(i)}>
                 <img src={`data:image/jpeg;base64,${frame.base64}`} alt="" className="w-full aspect-video object-cover" />
                 <div className="absolute bottom-0 inset-x-0 px-2 py-1 text-[10px] font-mono font-semibold text-brand" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.7))" }}>{frame.timestampFormatted}</div>
               </div>
@@ -398,10 +411,10 @@ export function ContentAnalyzer() {
           {result.transcript.length === 0 ? (
             <p className="text-sm text-ink-muted text-center py-12">No audio detected or transcription empty.</p>
           ) : (
-            <div className="space-y-0.5 max-h-[600px] overflow-y-auto">
+            <div className="space-y-0.5 max-h-[70vh] overflow-y-auto">
               {result.transcript.map((seg, i) => (
-                <div key={i} className="flex gap-3 py-2 px-2 rounded-md hover:bg-background transition-colors">
-                  <span className="tabular font-mono text-[11px] font-semibold shrink-0 w-12 text-right text-brand">{fmtTime(seg.start)}</span>
+                <div key={i} className="flex gap-3 py-2.5 px-3 rounded-lg hover:bg-background transition-colors">
+                  <span className="tabular font-mono text-[11px] font-semibold shrink-0 w-14 text-right text-brand">{fmtTime(seg.start)}</span>
                   <span className="text-sm text-ink leading-relaxed">{seg.text}</span>
                 </div>
               ))}
@@ -426,7 +439,7 @@ export function ContentAnalyzer() {
               ["Frames Extracted", String(result.frames.length)],
               ["Transcript Segments", String(result.transcript.length)],
             ].map(([label, value]) => (
-              <div key={label} className="flex items-center justify-between py-2.5 text-sm">
+              <div key={label} className="flex items-center justify-between py-3 text-sm">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-ink-muted">{label}</span>
                 <span className="tabular font-medium text-ink">{value}</span>
               </div>
