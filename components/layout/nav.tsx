@@ -11,6 +11,7 @@ const TABS = [
   { href: "/insights", label: "Insights" },
   { href: "/creators", label: "Creator Research" },
   { href: "/deals", label: "Brand Deals" },
+  { href: "/content-analyzer", label: "Content Analyzer" },
 ] as const;
 
 export function Nav() {
