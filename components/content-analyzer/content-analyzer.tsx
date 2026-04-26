@@ -223,28 +223,24 @@ function generateShotPrompts(result: AnalysisResult, breakdown: BreakdownData): 
   ];
 
   for (const { key, data } of sections) {
-    // Pick key frames: for sections with many frames, sample evenly
-    const maxShots = key === "Body" ? 6 : 3;
-    const step = Math.max(1, Math.floor(data.frames.length / maxShots));
-    const selectedFrames = data.frames.filter((_, i) => i % step === 0).slice(0, maxShots);
-
-    for (let i = 0; i < selectedFrames.length; i++) {
-      const frame = selectedFrames[i];
-      const nextFrame = selectedFrames[i + 1];
+    // Every frame gets a prompt
+    for (let i = 0; i < data.frames.length; i++) {
+      const frame = data.frames[i];
+      const nextFrame = data.frames[i + 1];
       const dur = nextFrame
         ? (nextFrame.timestamp - frame.timestamp).toFixed(1)
         : key === "Hook" ? "2.0" : key === "Closing" ? "3.0" : "2.5";
 
       // Find transcript near this frame
       const nearbyText = data.segments
-        .filter(s => Math.abs(s.start - frame.timestamp) < 5)
+        .filter(s => Math.abs(s.start - frame.timestamp) < 3)
         .map(s => s.text)
         .join(" ")
         .trim();
 
-      const camera = inferCamera(i, selectedFrames.length, key);
+      const camera = inferCamera(i, data.frames.length, key);
       const mood = inferMood(key, nearbyText);
-      const frameDesc = describeFrame(i, selectedFrames.length, key);
+      const frameDesc = describeFrame(i, data.frames.length, key);
 
       // Build the Seedance prompt
       const promptParts: string[] = [];
