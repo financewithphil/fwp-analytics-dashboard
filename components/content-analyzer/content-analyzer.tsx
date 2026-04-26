@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useMemo } from "react";
 import { Section } from "@/components/charts/section";
 import { KpiCard } from "@/components/charts/kpi-card";
 import { cn } from "@/lib/utils";
-import { Video, Upload, Link2, ArrowLeft, ArrowRight, X, ChevronRight, Loader2, Settings2 } from "lucide-react";
+import { Video, Upload, Link2, ArrowLeft, ArrowRight, X, ChevronRight, Loader2, Settings2, Copy, Check, Clapperboard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -18,7 +18,7 @@ interface TranscriptSegment { start: number; end: number; text: string; }
 interface AnalysisResult { metadata: VideoMetadata; frames: ExtractedFrame[]; transcript: TranscriptSegment[]; processingTime: number; }
 
 type View = "upload" | "results";
-type ResultTab = "breakdown" | "frames" | "transcript" | "info";
+type ResultTab = "breakdown" | "prompts" | "frames" | "transcript" | "info";
 
 /* ── Helpers ── */
 function fmtTime(s: number): string {
@@ -166,6 +166,189 @@ function BreakdownCard({ label, accent, text, segments, frames, timeLabel, secti
   );
 }
 
+/* ── Seedance prompt generation ── */
+interface ShotPrompt {
+  shotNumber: number;
+  section: string;
+  timestamp: string;
+  duration: string;
+  frame: ExtractedFrame;
+  transcript: string;
+  prompt: string;
+  camera: string;
+  mood: string;
+}
+
+function inferCamera(index: number, total: number, section: string): string {
+  if (section === "Hook") {
+    if (index === 0) return "slow push-in, eye-level, centered subject";
+    if (index === 1) return "medium close-up, slight dolly forward";
+    return "smooth tracking shot, dynamic angle";
+  }
+  if (section === "Closing") {
+    if (index === total - 1) return "slow pull-back, wide establishing shot";
+    return "steady medium shot, gentle drift";
+  }
+  const moves = [
+    "locked-off medium shot, clean composition",
+    "slow pan right, following action",
+    "slight dolly-in, over-the-shoulder",
+    "wide shot, rule of thirds",
+    "medium close-up, shallow depth of field",
+    "tracking shot, parallel to subject",
+    "static wide, subject enters frame",
+    "slow tilt up, revealing environment",
+  ];
+  return moves[index % moves.length];
+}
+
+function inferMood(section: string, text: string): string {
+  if (section === "Hook") return "high-energy, attention-grabbing, vibrant lighting";
+  if (section === "Closing") return "warm, reflective, golden-hour tone";
+  const lower = text.toLowerCase();
+  if (lower.includes("excit") || lower.includes("amaz") || lower.includes("!")) return "upbeat, bright, dynamic energy";
+  if (lower.includes("serious") || lower.includes("import") || lower.includes("need to")) return "focused, clean, editorial lighting";
+  if (lower.includes("funny") || lower.includes("lol") || lower.includes("haha")) return "playful, warm, natural lighting";
+  return "confident, well-lit, professional tone";
+}
+
+function generateShotPrompts(result: AnalysisResult, breakdown: BreakdownData): ShotPrompt[] {
+  const shots: ShotPrompt[] = [];
+  let shotNum = 1;
+
+  const sections: { key: string; data: { frames: ExtractedFrame[]; segments: TranscriptSegment[] }; }[] = [
+    { key: "Hook", data: { frames: breakdown.hook.frames, segments: breakdown.hook.segments } },
+    { key: "Body", data: { frames: breakdown.body.frames, segments: breakdown.body.segments } },
+    { key: "Closing", data: { frames: breakdown.closing.frames, segments: breakdown.closing.segments } },
+  ];
+
+  for (const { key, data } of sections) {
+    // Pick key frames: for sections with many frames, sample evenly
+    const maxShots = key === "Body" ? 6 : 3;
+    const step = Math.max(1, Math.floor(data.frames.length / maxShots));
+    const selectedFrames = data.frames.filter((_, i) => i % step === 0).slice(0, maxShots);
+
+    for (let i = 0; i < selectedFrames.length; i++) {
+      const frame = selectedFrames[i];
+      const nextFrame = selectedFrames[i + 1];
+      const dur = nextFrame
+        ? (nextFrame.timestamp - frame.timestamp).toFixed(1)
+        : key === "Hook" ? "2.0" : key === "Closing" ? "3.0" : "2.5";
+
+      // Find transcript near this frame
+      const nearbyText = data.segments
+        .filter(s => Math.abs(s.start - frame.timestamp) < 5)
+        .map(s => s.text)
+        .join(" ")
+        .trim();
+
+      const camera = inferCamera(i, selectedFrames.length, key);
+      const mood = inferMood(key, nearbyText);
+      const frameDesc = describeFrame(i, selectedFrames.length, key);
+
+      // Build the Seedance prompt
+      const promptParts: string[] = [];
+
+      // Visual description
+      if (key === "Hook" && i === 0) {
+        promptParts.push("Opening shot.");
+      }
+      promptParts.push(`${frameDesc}.`);
+
+      // Add speech context if available
+      if (nearbyText) {
+        promptParts.push(`Person speaking: "${nearbyText.slice(0, 120)}${nearbyText.length > 120 ? "..." : ""}".`);
+      }
+
+      // Camera and mood
+      promptParts.push(`Camera: ${camera}.`);
+      promptParts.push(`Mood: ${mood}.`);
+
+      // Technical
+      promptParts.push(`${result.metadata.width}x${result.metadata.height}, ${dur}s duration, cinematic quality, sharp focus.`);
+
+      shots.push({
+        shotNumber: shotNum++,
+        section: key,
+        timestamp: frame.timestampFormatted,
+        duration: `${dur}s`,
+        frame,
+        transcript: nearbyText,
+        prompt: promptParts.join(" "),
+        camera,
+        mood,
+      });
+    }
+  }
+
+  return shots;
+}
+
+/* ── Shot Prompt Card ── */
+function ShotCard({ shot, accent }: { shot: ShotPrompt; accent: string }) {
+  const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editedPrompt, setEditedPrompt] = useState(shot.prompt);
+
+  const copyPrompt = () => {
+    navigator.clipboard.writeText(editedPrompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+      <div className="flex">
+        {/* Frame preview */}
+        <div className="relative shrink-0 w-48">
+          <img src={`data:image/jpeg;base64,${shot.frame.base64}`} alt="" className="w-full h-full object-cover" />
+          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold" style={{ background: accent, color: "#fff" }}>
+            Shot {shot.shotNumber}
+          </div>
+          <div className="absolute bottom-0 inset-x-0 px-2 py-1 text-[9px] font-mono font-semibold" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.8))", color: "#fff" }}>
+            {shot.timestamp} &middot; {shot.duration}
+          </div>
+        </div>
+
+        {/* Prompt content */}
+        <div className="flex-1 p-4 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: `color-mix(in srgb, ${accent} 15%, transparent)`, color: accent }}>{shot.section}</span>
+              <span className="font-mono text-[9px] text-ink-muted">{shot.camera}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setEditing(!editing)} className="p-1 rounded hover:bg-border/40 text-ink-muted transition-colors">
+                <Clapperboard className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={copyPrompt} className="p-1 rounded hover:bg-border/40 text-ink-muted transition-colors">
+                {copied ? <Check className="w-3.5 h-3.5 text-positive" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          {editing ? (
+            <textarea
+              value={editedPrompt}
+              onChange={(e) => setEditedPrompt(e.target.value)}
+              className="w-full text-xs text-ink leading-relaxed bg-background border border-border rounded-md p-2.5 resize-y min-h-[80px] font-mono focus:outline-none focus:border-brand/40"
+              rows={4}
+            />
+          ) : (
+            <p className="text-xs text-ink leading-relaxed">{editedPrompt}</p>
+          )}
+
+          {shot.transcript && !editing && (
+            <p className="mt-2 text-[10px] text-ink-muted italic leading-relaxed truncate">
+              &ldquo;{shot.transcript.slice(0, 100)}{shot.transcript.length > 100 ? "..." : ""}&rdquo;
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════════════
    Main Component
    ══════════════════════════════════════════════ */
@@ -222,9 +405,15 @@ export function ContentAnalyzer() {
   const reset = () => { setView("upload"); setResult(null); setError(""); setUrl(""); setSelectedFrame(null); };
 
   const rTabs: { key: ResultTab; label: string }[] = [
-    { key: "breakdown", label: "Breakdown" }, { key: "frames", label: "Frames" },
-    { key: "transcript", label: "Transcript" }, { key: "info", label: "Info" },
+    { key: "breakdown", label: "Breakdown" }, { key: "prompts", label: "Prompts" },
+    { key: "frames", label: "Frames" }, { key: "transcript", label: "Transcript" },
+    { key: "info", label: "Info" },
   ];
+
+  const shotPrompts = useMemo(() => {
+    if (!result || !breakdown) return [];
+    return generateShotPrompts(result, breakdown);
+  }, [result, breakdown]);
 
   /* ── Upload view ── */
   if (view === "upload" || loading) {
@@ -375,6 +564,71 @@ export function ContentAnalyzer() {
           ) : (
             <Section title="No breakdown available">
               <p className="text-sm text-ink-muted py-8 text-center">No transcript or frames to analyze.</p>
+            </Section>
+          )}
+        </div>
+      )}
+
+      {/* ── Prompts ── */}
+      {resultTab === "prompts" && (
+        <div className="space-y-4">
+          {shotPrompts.length > 0 ? (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-ink-soft">{shotPrompts.length} shots generated &mdash; click the edit icon to refine, copy icon to grab for Seedance</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const all = shotPrompts.map((s, i) => `--- Shot ${i + 1} (${s.section} @ ${s.timestamp}, ${s.duration}) ---\n${s.prompt}`).join("\n\n");
+                    navigator.clipboard.writeText(all);
+                  }}
+                >
+                  Copy All Prompts
+                </Button>
+              </div>
+
+              {/* Hook shots */}
+              {shotPrompts.filter(s => s.section === "Hook").length > 0 && (
+                <div>
+                  <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-muted mb-3">Hook Shots</h3>
+                  <div className="space-y-3">
+                    {shotPrompts.filter(s => s.section === "Hook").map(shot => (
+                      <ShotCard key={shot.shotNumber} shot={shot} accent="var(--brand)" />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Body shots */}
+              {shotPrompts.filter(s => s.section === "Body").length > 0 && (
+                <div>
+                  <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-muted mb-3">Body Shots</h3>
+                  <div className="space-y-3">
+                    {shotPrompts.filter(s => s.section === "Body").map(shot => (
+                      <ShotCard key={shot.shotNumber} shot={shot} accent="var(--ig)" />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Closing shots */}
+              {shotPrompts.filter(s => s.section === "Closing").length > 0 && (
+                <div>
+                  <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-muted mb-3">Closing Shots</h3>
+                  <div className="space-y-3">
+                    {shotPrompts.filter(s => s.section === "Closing").map(shot => (
+                      <ShotCard key={shot.shotNumber} shot={shot} accent="var(--positive)" />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <Section title="No prompts available">
+              <p className="text-sm text-ink-muted py-8 text-center">Need frames and transcript to generate prompts.</p>
             </Section>
           )}
         </div>
