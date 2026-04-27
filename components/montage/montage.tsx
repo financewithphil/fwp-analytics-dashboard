@@ -31,19 +31,16 @@ export function Montage() {
   async function probe(tunnel: string) {
     setStatus("checking");
 
-    // Try tunnel first
+    // If a tunnel URL is saved, trust it and load the iframe directly.
+    // Cross-origin fetch probes from GitHub Pages to trycloudflare.com
+    // get blocked by browser CORS — but iframes work fine.
     if (tunnel) {
-      try {
-        const r = await fetch(`${tunnel}/api/preflight`, { signal: AbortSignal.timeout(5000) });
-        if (r.ok) {
-          setActiveUrl(tunnel);
-          setStatus("online");
-          return;
-        }
-      } catch {}
+      setActiveUrl(tunnel);
+      setStatus("online");
+      return;
     }
 
-    // Fallback to localhost
+    // Try localhost (same-origin or local dev)
     try {
       const r = await fetch(`${LOCALHOST}/api/preflight`, { signal: AbortSignal.timeout(3000) });
       if (r.ok) {
